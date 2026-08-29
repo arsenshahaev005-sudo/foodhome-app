@@ -127,7 +127,9 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
         if let navigationAttachment {
             navigationCoordinator.detach(navigationAttachment)
         }
-        removeMessageHandler(from: webView)
+        MainActor.assumeIsolated {
+            removeMessageHandler(from: webView)
+        }
         detachPaymentReturnListener?()
     }
 
@@ -577,6 +579,7 @@ private final class PaymentUserActionTracker {
 }
 
 extension WebViewStore: WKUIDelegate {
+    @available(iOS 18.4, *)
     func webView(
         _ webView: WKWebView,
         runOpenPanelWith parameters: WKOpenPanelParameters,

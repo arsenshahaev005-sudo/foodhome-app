@@ -72,11 +72,14 @@ final class NavigationPolicyTests: XCTestCase {
         }
     }
 
-    func testTrailingDotAndIDNALookalikeNeverBecomeInternal() {
+    func testTrailingDotHostFailsClosed() {
         XCTAssertEqual(
             policy.classify("https://foodhome.market./orders"),
             .blocked(.invalidHost)
         )
+    }
+
+    func testIDNALookalikeRemainsExternal() {
         guard case .external = policy.classify("https://xn--foodhme-8fg.example/orders") else {
             return XCTFail("IDNA lookalike must remain external")
         }

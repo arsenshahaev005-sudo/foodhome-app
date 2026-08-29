@@ -7,7 +7,6 @@ import org.gradle.api.tasks.TaskAction
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -19,7 +18,7 @@ val debugBaseUrl = providers.gradleProperty("FOODHOME_DEBUG_BASE_URL")
 
 android {
     namespace = "market.foodhome.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         // Provisional until Food&Home verifies ownership and store availability.
@@ -65,10 +64,6 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 abstract class GenerateBridgeManifestAsset : DefaultTask() {

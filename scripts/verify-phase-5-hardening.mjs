@@ -60,6 +60,26 @@ assert.deepEqual(manifest.rateLimits, {
   requestNotificationPermission: { maxRequests: 1, windowSeconds: 30 },
 });
 
+const androidVersionCatalogPath = "android/gradle/libs.versions.toml";
+const androidVersionCatalog = read(androidVersionCatalogPath);
+requireText(androidVersionCatalog, 'agp = "9.1.1"', androidVersionCatalogPath);
+requireText(androidVersionCatalog, 'kotlin = "2.3.21"', androidVersionCatalogPath);
+forbidText(androidVersionCatalog, "org.jetbrains.kotlin.android", androidVersionCatalogPath);
+
+const androidBuildPath = "android/app/build.gradle.kts";
+const androidBuild = read(androidBuildPath);
+requireText(androidBuild, "compileSdk = 37", androidBuildPath);
+requireText(androidBuild, "targetSdk = 36", androidBuildPath);
+
+const gradleWrapperPath = "android/gradle/wrapper/gradle-wrapper.properties";
+const gradleWrapper = read(gradleWrapperPath);
+requireText(gradleWrapper, "gradle-9.3.1-bin.zip", gradleWrapperPath);
+requireText(
+  gradleWrapper,
+  "distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06",
+  gradleWrapperPath,
+);
+
 const adversarialPath = "bridge-contract/tests/adversarial.test.mjs";
 const adversarial = read(adversarialPath);
 for (const expected of [
@@ -224,6 +244,39 @@ for (const [file, markers] of [
   const content = read(file);
   for (const marker of markers) requireText(content, marker, file);
 }
+
+const iosNavigationPath = "ios/FoodHomeApp/Navigation/NavigationPolicy.swift";
+const iosNavigation = read(iosNavigationPath);
+requireText(iosNavigation, "URLComponents(string: raw)", iosNavigationPath);
+requireText(iosNavigation, "rawHostHasTrailingDot(raw)", iosNavigationPath);
+requireText(iosNavigation, "components.percentEncodedHost", iosNavigationPath);
+forbidText(
+  iosNavigation,
+  "URLComponents(url: url, resolvingAgainstBaseURL: false)",
+  iosNavigationPath,
+);
+
+const iosEventQueuePath = "ios/FoodHomeApp/Bridge/NativeEventQueue.swift";
+const iosEventQueue = read(iosEventQueuePath);
+requireText(
+  iosEventQueue,
+  "options: [.sortedKeys, .withoutEscapingSlashes]",
+  iosEventQueuePath,
+);
+
+const iosWorkflowPath = ".github/workflows/ios.yml";
+const iosWorkflow = read(iosWorkflowPath);
+requireText(iosWorkflow, "-parallel-testing-enabled NO", iosWorkflowPath);
+
+const androidNavigationPath =
+  "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";
+const androidNavigation = read(androidNavigationPath);
+requireText(
+  androidNavigation,
+  "rawQuery?.takeIf(String::isNotEmpty) ?: return false",
+  androidNavigationPath,
+);
+forbidText(androidNavigation, "var decoded = rawQuery\n", androidNavigationPath);
 
 const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);

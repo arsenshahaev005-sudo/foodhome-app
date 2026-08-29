@@ -30,18 +30,21 @@ struct NavigationPolicy {
         else {
             return .blocked(.malformed)
         }
-        guard let url = URL(string: raw),
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        guard let components = URLComponents(string: raw),
+              let url = components.url
         else {
             return .blocked(.malformed)
         }
         guard components.scheme?.lowercased() == "https" else {
             return .blocked(.forbiddenScheme)
         }
+        guard !Self.rawHostHasTrailingDot(raw) else {
+            return .blocked(.invalidHost)
+        }
         guard components.user == nil, components.password == nil else {
             return .blocked(.userInfo)
         }
-        guard let host = components.host?.lowercased() else {
+        guard let host = components.percentEncodedHost?.lowercased() else {
             return .blocked(.invalidHost)
         }
         guard Self.isUnambiguousHost(host) else {
@@ -53,7 +56,7 @@ struct NavigationPolicy {
             return .blocked(.nestedURL)
         }
         guard let trusted = URLComponents(url: trustedOrigin, resolvingAgainstBaseURL: false),
-              let trustedHost = trusted.host?.lowercased()
+              let trustedHost = trusted.percentEncodedHost?.lowercased()
         else {
             return .blocked(.malformed)
         }
@@ -128,6 +131,18 @@ struct NavigationPolicy {
         !host.hasSuffix(".") && host.unicodeScalars.allSatisfy {
             $0.value > 0x20 && $0.value <= 0x7F
         }
+    }
+
+    private static func rawHostHasTrailingDot(_ rawURL: String) -> Bool {
+        guard let schemeSeparator = rawURL.range(of: "://") else { return false }
+        let remainder = rawURL[schemeSeparator.upperBound...]
+        let authority = remainder.prefix { character in
+            character != "/" && character != "?" && character != "#"
+        }
+        let hostAndPort = authority.split(separator: "@", omittingEmptySubsequences: false).last ?? authority
+        guard !hostAndPort.hasPrefix("[") else { return false }
+        let rawHost = hostAndPort.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false).first
+        return rawHost?.hasSuffix(".") == true
     }
 
     private func effectivePort(_ components: URLComponents) -> Int {

@@ -72,6 +72,14 @@ requireText(androidPush, "SensitivePushToken(<redacted>", androidPushPath);
 requireText(androidPush, "DisabledPushTokenSink", androidPushPath);
 forbidText(androidPush, "FirebaseMessagingService", androidPushPath);
 
+requireText(androidShell, "stringResource(R.string.share_chooser_title)", androidShellPath);
+requireText(
+  androidShell,
+  "remember(manifest, environment.trustedOrigin, shareChooserTitle)",
+  androidShellPath,
+);
+forbidText(androidShell, "context.getString(R.string.", androidShellPath);
+
 const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);
 requireText(iosProject, "INFOPLIST_KEY_NSCameraUsageDescription", iosProjectPath);
@@ -94,8 +102,26 @@ for (const file of [
 const iosWebViewPath = "ios/FoodHomeApp/WebView/WebViewStore.swift";
 const iosWebView = read(iosWebViewPath);
 requireText(iosWebView, "runOpenPanelWith parameters", iosWebViewPath);
+assert.match(
+  iosWebView,
+  /@available\(iOS 18\.4, \*\)\s+func webView\(\s+_ webView: WKWebView,\s+runOpenPanelWith parameters: WKOpenPanelParameters,/,
+  "iOS file-picker delegate must be availability-gated without raising the app deployment target",
+);
+assert.match(
+  iosWebView,
+  /deinit\s*\{[\s\S]*?MainActor\.assumeIsolated\s*\{[\s\S]*?removeMessageHandler\(from: webView\)/,
+  "WebView message-handler teardown must explicitly preserve main-actor isolation",
+);
 requireText(iosWebView, "frame.isMainFrame", iosWebViewPath);
 requireText(iosWebView, "mediaPickerCoordinator.present", iosWebViewPath);
+
+const iosLocationPath = "ios/FoodHomeApp/Location/IOSLocationProvider.swift";
+const iosLocation = read(iosLocationPath);
+requireText(
+  iosLocation,
+  "@preconcurrency CLLocationManagerDelegate",
+  iosLocationPath,
+);
 
 const iosCapabilityPath =
   "ios/FoodHomeApp/Capabilities/IOSCapabilityCoordinator.swift";
@@ -104,6 +130,14 @@ requireText(iosCapability, "UIActivityViewController", iosCapabilityPath);
 requireText(iosCapability, "locationProvider.requestCurrentLocation", iosCapabilityPath);
 requireText(iosCapability, "notificationCoordinator.requestAuthorization", iosCapabilityPath);
 requireText(iosCapability, "manifest.advertisedCapabilities", iosCapabilityPath);
+
+const iosBridgeManifestPath = "ios/FoodHomeApp/Bridge/BridgeManifest.swift";
+const iosBridgeManifest = read(iosBridgeManifestPath);
+requireText(
+  iosBridgeManifest,
+  "encoder.outputFormatting = [.withoutEscapingSlashes]",
+  iosBridgeManifestPath,
+);
 
 const iosPushPath = "ios/FoodHomeApp/Notifications/FoodHomeAppDelegate.swift";
 const iosPush = read(iosPushPath);

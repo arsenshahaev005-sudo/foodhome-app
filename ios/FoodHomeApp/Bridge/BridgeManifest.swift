@@ -246,7 +246,9 @@ enum NativeModeBootstrap {
     }
 
     private static func jsonString(_ value: String) -> String? {
-        guard let data = try? JSONEncoder().encode(value) else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        guard let data = try? encoder.encode(value) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 }

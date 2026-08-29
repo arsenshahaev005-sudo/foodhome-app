@@ -12,7 +12,7 @@ enum LocationRequestResult {
 }
 
 @MainActor
-final class IOSLocationProvider: NSObject, CLLocationManagerDelegate {
+final class IOSLocationProvider: NSObject, @preconcurrency CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private let timeout: TimeInterval
     private var completion: ((LocationRequestResult) -> Void)?

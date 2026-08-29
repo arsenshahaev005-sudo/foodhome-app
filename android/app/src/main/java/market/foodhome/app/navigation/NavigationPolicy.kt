@@ -69,8 +69,7 @@ class NavigationPolicy(
     }
 
     private fun containsNestedUrl(rawQuery: String?): Boolean {
-        if (rawQuery.isNullOrEmpty()) return false
-        var decoded = rawQuery
+        var decoded = rawQuery?.takeIf(String::isNotEmpty) ?: return false
         repeat(MAX_DECODE_PASSES + 1) { pass ->
             if (containsForbiddenDestination(decoded)) return true
             if (pass == MAX_DECODE_PASSES) return false
