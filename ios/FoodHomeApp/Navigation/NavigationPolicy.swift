@@ -38,6 +38,9 @@ struct NavigationPolicy {
         guard components.scheme?.lowercased() == "https" else {
             return .blocked(.forbiddenScheme)
         }
+        guard !Self.rawHostHasTrailingDot(raw) else {
+            return .blocked(.invalidHost)
+        }
         guard components.user == nil, components.password == nil else {
             return .blocked(.userInfo)
         }
@@ -128,6 +131,18 @@ struct NavigationPolicy {
         !host.hasSuffix(".") && host.unicodeScalars.allSatisfy {
             $0.value > 0x20 && $0.value <= 0x7F
         }
+    }
+
+    private static func rawHostHasTrailingDot(_ rawURL: String) -> Bool {
+        guard let schemeSeparator = rawURL.range(of: "://") else { return false }
+        let remainder = rawURL[schemeSeparator.upperBound...]
+        let authority = remainder.prefix { character in
+            character != "/" && character != "?" && character != "#"
+        }
+        let hostAndPort = authority.split(separator: "@", omittingEmptySubsequences: false).last ?? authority
+        guard !hostAndPort.hasPrefix("[") else { return false }
+        let rawHost = hostAndPort.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false).first
+        return rawHost?.hasSuffix(".") == true
     }
 
     private func effectivePort(_ components: URLComponents) -> Int {

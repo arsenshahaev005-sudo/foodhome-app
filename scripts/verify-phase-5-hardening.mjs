@@ -248,6 +248,7 @@ for (const [file, markers] of [
 const iosNavigationPath = "ios/FoodHomeApp/Navigation/NavigationPolicy.swift";
 const iosNavigation = read(iosNavigationPath);
 requireText(iosNavigation, "URLComponents(string: raw)", iosNavigationPath);
+requireText(iosNavigation, "rawHostHasTrailingDot(raw)", iosNavigationPath);
 forbidText(
   iosNavigation,
   "URLComponents(url: url, resolvingAgainstBaseURL: false)",
