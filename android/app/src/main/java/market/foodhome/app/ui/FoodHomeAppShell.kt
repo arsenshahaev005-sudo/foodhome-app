@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import market.foodhome.app.R
@@ -82,6 +83,7 @@ fun FoodHomeAppShell(
     onOpenExternal: (Uri) -> Unit,
 ) {
     val context = LocalContext.current
+    val shareChooserTitle = stringResource(R.string.share_chooser_title)
     var state: AppShellState by remember { mutableStateOf(AppShellState.Loading) }
     var webViewGeneration by remember { mutableIntStateOf(0) }
     var lastCommittedUrl by remember { mutableStateOf(environment.baseUrl.toASCIIString()) }
@@ -218,7 +220,7 @@ fun FoodHomeAppShell(
         )
     }
 
-    val capabilityDispatcher = remember(manifest, environment.trustedOrigin) {
+    val capabilityDispatcher = remember(manifest, environment.trustedOrigin, shareChooserTitle) {
         AndroidCapabilityCoordinator(
             manifest = manifest,
             trustedOrigin = environment.trustedOrigin,
@@ -237,7 +239,7 @@ fun FoodHomeAppShell(
                     context.startActivity(
                         Intent.createChooser(
                             intent,
-                            context.getString(R.string.share_chooser_title),
+                            shareChooserTitle,
                         ),
                     )
                 }.isSuccess
@@ -356,7 +358,7 @@ fun FoodHomeAppShell(
                         LocationRequestResult.Failed("CANCELLED", "Location request was cancelled"),
                     )
                 },
-                title = { Text(context.getString(R.string.location_confirmation_title)) },
+                title = { Text(stringResource(R.string.location_confirmation_title)) },
                 text = { Text(request?.purpose.orEmpty()) },
                 dismissButton = {
                     TextButton(onClick = {
@@ -365,7 +367,7 @@ fun FoodHomeAppShell(
                         request?.completion?.invoke(
                             LocationRequestResult.Failed("CANCELLED", "Location request was cancelled"),
                         )
-                    }) { Text(context.getString(R.string.permission_cancel)) }
+                    }) { Text(stringResource(R.string.permission_cancel)) }
                 },
                 confirmButton = {
                     TextButton(onClick = {
@@ -384,7 +386,7 @@ fun FoodHomeAppShell(
                                 ),
                             )
                         }
-                    }) { Text(context.getString(R.string.permission_continue)) }
+                    }) { Text(stringResource(R.string.permission_continue)) }
                 },
             )
         }
@@ -397,14 +399,14 @@ fun FoodHomeAppShell(
                     pendingNotification = null
                     request?.completion?.invoke(NotificationPermissionResult.Cancelled)
                 },
-                title = { Text(context.getString(R.string.notification_confirmation_title)) },
+                title = { Text(stringResource(R.string.notification_confirmation_title)) },
                 text = { Text(request?.purpose ?: "Узнавать об актуальных событиях Food&Home") },
                 dismissButton = {
                     TextButton(onClick = {
                         showNotificationConfirmation = false
                         pendingNotification = null
                         request?.completion?.invoke(NotificationPermissionResult.Cancelled)
-                    }) { Text(context.getString(R.string.permission_cancel)) }
+                    }) { Text(stringResource(R.string.permission_cancel)) }
                 },
                 confirmButton = {
                     TextButton(onClick = {
@@ -421,7 +423,7 @@ fun FoodHomeAppShell(
                                 ),
                             )
                         }
-                    }) { Text(context.getString(R.string.permission_continue)) }
+                    }) { Text(stringResource(R.string.permission_continue)) }
                 },
             )
         }
@@ -430,18 +432,18 @@ fun FoodHomeAppShell(
             val request = pendingMedia?.request
             AlertDialog(
                 onDismissRequest = { completeMedia(null) },
-                title = { Text(context.getString(R.string.media_source_title)) },
+                title = { Text(stringResource(R.string.media_source_title)) },
                 dismissButton = {
                     TextButton(onClick = {
                         showMediaSourceChoice = false
                         request?.let(::launchPicker) ?: completeMedia(null)
-                    }) { Text(context.getString(R.string.media_source_photos)) }
+                    }) { Text(stringResource(R.string.media_source_photos)) }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         showMediaSourceChoice = false
                         launchCamera()
-                    }) { Text(context.getString(R.string.media_source_camera)) }
+                    }) { Text(stringResource(R.string.media_source_camera)) }
                 },
             )
         }

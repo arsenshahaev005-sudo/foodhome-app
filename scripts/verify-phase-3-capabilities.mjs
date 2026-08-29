@@ -72,6 +72,14 @@ requireText(androidPush, "SensitivePushToken(<redacted>", androidPushPath);
 requireText(androidPush, "DisabledPushTokenSink", androidPushPath);
 forbidText(androidPush, "FirebaseMessagingService", androidPushPath);
 
+requireText(androidShell, "stringResource(R.string.share_chooser_title)", androidShellPath);
+requireText(
+  androidShell,
+  "remember(manifest, environment.trustedOrigin, shareChooserTitle)",
+  androidShellPath,
+);
+forbidText(androidShell, "context.getString(R.string.", androidShellPath);
+
 const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);
 requireText(iosProject, "INFOPLIST_KEY_NSCameraUsageDescription", iosProjectPath);
