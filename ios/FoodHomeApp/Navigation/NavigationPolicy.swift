@@ -44,7 +44,7 @@ struct NavigationPolicy {
         guard components.user == nil, components.password == nil else {
             return .blocked(.userInfo)
         }
-        guard let host = components.host?.lowercased() else {
+        guard let host = components.percentEncodedHost?.lowercased() else {
             return .blocked(.invalidHost)
         }
         guard Self.isUnambiguousHost(host) else {
@@ -56,7 +56,7 @@ struct NavigationPolicy {
             return .blocked(.nestedURL)
         }
         guard let trusted = URLComponents(url: trustedOrigin, resolvingAgainstBaseURL: false),
-              let trustedHost = trusted.host?.lowercased()
+              let trustedHost = trusted.percentEncodedHost?.lowercased()
         else {
             return .blocked(.malformed)
         }

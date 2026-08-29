@@ -38,6 +38,7 @@ jobs:
           -scheme FoodHomeApp
           -sdk iphonesimulator
           -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro'
+          -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=NO
           test
       - name: Build unsigned Release for simulator

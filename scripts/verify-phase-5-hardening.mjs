@@ -249,11 +249,24 @@ const iosNavigationPath = "ios/FoodHomeApp/Navigation/NavigationPolicy.swift";
 const iosNavigation = read(iosNavigationPath);
 requireText(iosNavigation, "URLComponents(string: raw)", iosNavigationPath);
 requireText(iosNavigation, "rawHostHasTrailingDot(raw)", iosNavigationPath);
+requireText(iosNavigation, "components.percentEncodedHost", iosNavigationPath);
 forbidText(
   iosNavigation,
   "URLComponents(url: url, resolvingAgainstBaseURL: false)",
   iosNavigationPath,
 );
+
+const iosEventQueuePath = "ios/FoodHomeApp/Bridge/NativeEventQueue.swift";
+const iosEventQueue = read(iosEventQueuePath);
+requireText(
+  iosEventQueue,
+  "options: [.sortedKeys, .withoutEscapingSlashes]",
+  iosEventQueuePath,
+);
+
+const iosWorkflowPath = ".github/workflows/ios.yml";
+const iosWorkflow = read(iosWorkflowPath);
+requireText(iosWorkflow, "-parallel-testing-enabled NO", iosWorkflowPath);
 
 const androidNavigationPath =
   "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";

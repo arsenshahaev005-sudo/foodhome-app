@@ -23,12 +23,15 @@ final class NativeEventQueue {
             version: manifest.bridgeMajor
         ),
         JSONSerialization.isValidJSONObject(event),
-        let eventData = try? JSONSerialization.data(withJSONObject: event),
+        let eventData = try? JSONSerialization.data(
+            withJSONObject: event,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        ),
         let eventJSON = String(data: eventData, encoding: .utf8),
         let origin = exactOrigin(trustedOrigin),
-        let originData = try? JSONEncoder().encode(origin),
+        let originData = try? encodedJSONString(origin),
         let originJSON = String(data: originData, encoding: .utf8),
-        let eventNameData = try? JSONEncoder().encode(manifest.nativeEvents.eventName),
+        let eventNameData = try? encodedJSONString(manifest.nativeEvents.eventName),
         let eventNameJSON = String(data: eventNameData, encoding: .utf8)
         else {
             return nil
@@ -53,5 +56,11 @@ final class NativeEventQueue {
             return nil
         }
         return "https://\(host)"
+    }
+
+    private func encodedJSONString(_ value: String) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        return try encoder.encode(value)
     }
 }
