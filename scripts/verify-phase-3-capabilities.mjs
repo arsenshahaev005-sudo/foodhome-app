@@ -131,6 +131,14 @@ requireText(iosCapability, "locationProvider.requestCurrentLocation", iosCapabil
 requireText(iosCapability, "notificationCoordinator.requestAuthorization", iosCapabilityPath);
 requireText(iosCapability, "manifest.advertisedCapabilities", iosCapabilityPath);
 
+const iosBridgeManifestPath = "ios/FoodHomeApp/Bridge/BridgeManifest.swift";
+const iosBridgeManifest = read(iosBridgeManifestPath);
+requireText(
+  iosBridgeManifest,
+  "encoder.outputFormatting = [.withoutEscapingSlashes]",
+  iosBridgeManifestPath,
+);
+
 const iosPushPath = "ios/FoodHomeApp/Notifications/FoodHomeAppDelegate.swift";
 const iosPush = read(iosPushPath);
 requireText(iosPush, "didRegisterForRemoteNotificationsWithDeviceToken", iosPushPath);

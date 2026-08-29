@@ -30,8 +30,8 @@ struct NavigationPolicy {
         else {
             return .blocked(.malformed)
         }
-        guard let url = URL(string: raw),
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        guard let components = URLComponents(string: raw),
+              let url = components.url
         else {
             return .blocked(.malformed)
         }

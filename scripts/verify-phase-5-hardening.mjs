@@ -245,6 +245,15 @@ for (const [file, markers] of [
   for (const marker of markers) requireText(content, marker, file);
 }
 
+const iosNavigationPath = "ios/FoodHomeApp/Navigation/NavigationPolicy.swift";
+const iosNavigation = read(iosNavigationPath);
+requireText(iosNavigation, "URLComponents(string: raw)", iosNavigationPath);
+forbidText(
+  iosNavigation,
+  "URLComponents(url: url, resolvingAgainstBaseURL: false)",
+  iosNavigationPath,
+);
+
 const androidNavigationPath =
   "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";
 const androidNavigation = read(androidNavigationPath);
