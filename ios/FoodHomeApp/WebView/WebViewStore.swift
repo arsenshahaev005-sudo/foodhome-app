@@ -127,7 +127,9 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
         if let navigationAttachment {
             navigationCoordinator.detach(navigationAttachment)
         }
-        removeMessageHandler(from: webView)
+        MainActor.assumeIsolated {
+            removeMessageHandler(from: webView)
+        }
         detachPaymentReturnListener?()
     }
 

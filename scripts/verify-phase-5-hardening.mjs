@@ -245,6 +245,16 @@ for (const [file, markers] of [
   for (const marker of markers) requireText(content, marker, file);
 }
 
+const androidNavigationPath =
+  "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";
+const androidNavigation = read(androidNavigationPath);
+requireText(
+  androidNavigation,
+  "rawQuery?.takeIf(String::isNotEmpty) ?: return false",
+  androidNavigationPath,
+);
+forbidText(androidNavigation, "var decoded = rawQuery\n", androidNavigationPath);
+
 const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);
 for (const file of [

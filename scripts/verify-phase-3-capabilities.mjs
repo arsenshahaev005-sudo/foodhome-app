@@ -99,8 +99,21 @@ assert.match(
   /@available\(iOS 18\.4, \*\)\s+func webView\(\s+_ webView: WKWebView,\s+runOpenPanelWith parameters: WKOpenPanelParameters,/,
   "iOS file-picker delegate must be availability-gated without raising the app deployment target",
 );
+assert.match(
+  iosWebView,
+  /deinit\s*\{[\s\S]*?MainActor\.assumeIsolated\s*\{[\s\S]*?removeMessageHandler\(from: webView\)/,
+  "WebView message-handler teardown must explicitly preserve main-actor isolation",
+);
 requireText(iosWebView, "frame.isMainFrame", iosWebViewPath);
 requireText(iosWebView, "mediaPickerCoordinator.present", iosWebViewPath);
+
+const iosLocationPath = "ios/FoodHomeApp/Location/IOSLocationProvider.swift";
+const iosLocation = read(iosLocationPath);
+requireText(
+  iosLocation,
+  "@preconcurrency CLLocationManagerDelegate",
+  iosLocationPath,
+);
 
 const iosCapabilityPath =
   "ios/FoodHomeApp/Capabilities/IOSCapabilityCoordinator.swift";
