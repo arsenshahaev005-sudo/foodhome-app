@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "configId": "payment-trust-expansion",
+  "issuedAt": "2026-08-28T08:00:00Z",
+  "expiresAt": "2026-08-29T08:00:00Z",
+  "maintenance": { "enabled": false },
+  "update": { "mode": "none" },
+  "capabilities": { "openPayment": true },
+  "payment": {
+    "flowVersion": "tochka-v1",
+    "allowedOrigins": ["https://evil.example"]
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "protocol": "foodhome.bridge",
+  "contractVersion": "1.4.0",
+  "bridgeMajor": 1,
+  "supportedVersions": [1],
+  "globalObjectName": "FoodHomeBridge",
+  "handshake": {
+    "transport": "dom-event",
+    "eventName": "foodhome:bridge-ready"
+  },
+  "nativeEvents": {
+    "transport": "dom-event",
+    "eventName": "foodhome:native-event"
+  },
+  "nativeMode": {
+    "protocol": "foodhome.native-mode",
+    "version": 1,
+    "globalObjectName": "FoodHomeNative",
+    "userAgentProduct": "FoodHomeNative/1",
+    "securityBoundary": false,
+    "documentStart": {
+      "trustedOriginOnly": true,
+      "mainFrameOnly": true
+    }
+  },
+  "trustedProductionOrigin": "https://foodhome.market",
+  "limits": {
+    "maxMessageBytes": 32768,
+    "maxJsonDepth": 12,
+    "maxJsonNodes": 512,
+    "requestTimeoutMs": 10000,
+    "maxRequestIdLength": 64,
+    "maxUrlLength": 2048
+  },
+  "methods": [
+    "share",
+    "requestLocation",
+    "openExternal",
+    "openPayment",
+    "ackNativeEvent",
+    "clearPaymentRecovery",
+    "getNotificationStatus",
+    "requestNotificationPermission"
+  ],
+  "rateLimits": {
+    "requestLocation": { "maxRequests": 3, "windowSeconds": 60 },
+    "openPayment": { "maxRequests": 3, "windowSeconds": 60 },
+    "requestNotificationPermission": { "maxRequests": 1, "windowSeconds": 30 }
+  },
+  "conditionalMethods": {
+    "openAuth": "disabled-until-production-oauth-is-confirmed"
+  },
+  "events": [
+    "appResumed",
+    "deepLinkReceived",
+    "pushOpened",
+    "networkChanged",
+    "paymentReturned",
+    "permissionChanged"
+  ],
+  "errorCodes": [
+    "INVALID_MESSAGE",
+    "ORIGIN_NOT_ALLOWED",
+    "FRAME_NOT_ALLOWED",
+    "VERSION_NOT_SUPPORTED",
+    "METHOD_NOT_SUPPORTED",
+    "CAPABILITY_UNAVAILABLE",
+    "INVALID_PAYLOAD",
+    "PAYLOAD_TOO_LARGE",
+    "TIMEOUT",
+    "RATE_LIMITED",
+    "CANCELLED",
+    "PAYMENT_URL_NOT_ALLOWED",
+    "PAYMENT_USER_ACTION_REQUIRED",
+    "PAYMENT_IN_PROGRESS",
+    "PAYMENT_RECOVERY_FAILED",
+    "PAYMENT_RECOVERY_EXPIRED",
+    "PAYMENT_RECOVERY_NOT_FOUND",
+    "EVENT_NOT_FOUND",
+    "LAUNCH_FAILED",
+    "INTERNAL_ERROR"
+  ],
+  "phase0Capabilities": [],
+  "builtInCapabilities": [
+    "getNotificationStatus",
+    "openPayment",
+    "requestLocation",
+    "requestNotificationPermission",
+    "share"
+  ],
+  "advertisedCapabilities": [
+    "getNotificationStatus",
+    "requestLocation",
+    "requestNotificationPermission",
+    "share"
+  ],
+  "compiledCapabilities": [
+    "getNotificationStatus",
+    "requestLocation",
+    "requestNotificationPermission",
+    "share"
+  ],
+  "compatibility": {
+    "v1Changes": "additive-only",
+    "unknownFields": "ignore-safely",
+    "unknownMethods": "METHOD_NOT_SUPPORTED",
+    "webFallbackRequired": true,
+    "floatingVersionsAllowed": false
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "protocol": "foodhome.bridge",
+  "selectedVersion": 2,
+  "supportedVersions": [2],
+  "appVersion": "0.1.0",
+  "buildNumber": "1",
+  "platform": "android",
+  "capabilities": []
+}

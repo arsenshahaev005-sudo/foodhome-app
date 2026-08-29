@@ -1,0 +1,51 @@
+name: iOS
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "bridge-contract/manifest.json"
+      - "scripts/verify-phase-5-hardening.mjs"
+      - ".github/workflows/ios.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "bridge-contract/manifest.json"
+      - "scripts/verify-phase-5-hardening.mjs"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Inspect Xcode project
+        run: plutil -lint ios/FoodHomeApp.xcodeproj/project.pbxproj
+      - name: Build and run unit and UI smoke tests
+        run: >-
+          xcodebuild
+          -project ios/FoodHomeApp.xcodeproj
+          -scheme FoodHomeApp
+          -sdk iphonesimulator
+          -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro'
+          CODE_SIGNING_ALLOWED=NO
+          test
+      - name: Build unsigned Release for simulator
+        run: >-
+          xcodebuild
+          -project ios/FoodHomeApp.xcodeproj
+          -scheme FoodHomeApp
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build

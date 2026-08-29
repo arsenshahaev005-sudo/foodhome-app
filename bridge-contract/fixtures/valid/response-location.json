@@ -1,0 +1,14 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "location-1",
+  "ok": true,
+  "result": {
+    "capability": "requestLocation",
+    "status": "granted",
+    "latitude": 51.5331,
+    "longitude": 46.0342,
+    "accuracyMeters": 85.5,
+    "precise": false
+  }
+}

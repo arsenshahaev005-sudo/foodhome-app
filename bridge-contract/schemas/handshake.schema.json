@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/bridge/v1/handshake.schema.json",
+  "title": "FoodHomeBridge v1 handshake",
+  "type": "object",
+  "required": [
+    "protocol",
+    "selectedVersion",
+    "supportedVersions",
+    "appVersion",
+    "buildNumber",
+    "platform",
+    "builtInCapabilities",
+    "capabilities"
+  ],
+  "properties": {
+    "protocol": { "const": "foodhome.bridge" },
+    "selectedVersion": { "const": 1 },
+    "supportedVersions": {
+      "type": "array",
+      "contains": { "const": 1 },
+      "minContains": 1,
+      "uniqueItems": true,
+      "maxItems": 4
+    },
+    "appVersion": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "buildNumber": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "platform": { "enum": ["ios", "android"] },
+    "builtInCapabilities": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "share",
+          "requestLocation",
+          "openExternal",
+          "openPayment",
+          "getNotificationStatus",
+          "requestNotificationPermission",
+          "deepLinks"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 16
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "share",
+          "requestLocation",
+          "openExternal",
+          "openPayment",
+          "getNotificationStatus",
+          "requestNotificationPermission",
+          "deepLinks"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 16
+    }
+  },
+  "additionalProperties": true
+}

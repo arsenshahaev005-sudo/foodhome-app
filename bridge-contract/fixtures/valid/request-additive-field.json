@@ -1,0 +1,8 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "additive-field-1",
+  "method": "getNotificationStatus",
+  "payload": {},
+  "futureOptionalField": "ignored-safely"
+}

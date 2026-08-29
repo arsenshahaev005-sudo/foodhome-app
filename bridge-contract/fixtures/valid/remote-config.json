@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "configId": "phase0-valid",
+  "issuedAt": "2026-08-28T08:00:00Z",
+  "expiresAt": "2026-08-29T08:00:00Z",
+  "maintenance": {
+    "enabled": false
+  },
+  "update": {
+    "mode": "soft",
+    "recommendedVersion": "0.2.0"
+  },
+  "capabilities": {
+    "share": true,
+    "openPayment": false
+  },
+  "payment": {
+    "flowVersion": "disabled"
+  }
+}

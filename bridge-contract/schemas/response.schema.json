@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/bridge/v1/response.schema.json",
+  "title": "FoodHomeBridge v1 response",
+  "type": "object",
+  "required": ["protocol", "version", "requestId", "ok"],
+  "properties": {
+    "protocol": { "const": "foodhome.bridge" },
+    "version": { "const": 1 },
+    "requestId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "ok": { "type": "boolean" },
+    "result": { "type": "object" },
+    "error": {
+      "type": "object",
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": {
+          "enum": [
+            "INVALID_MESSAGE",
+            "ORIGIN_NOT_ALLOWED",
+            "FRAME_NOT_ALLOWED",
+            "VERSION_NOT_SUPPORTED",
+            "METHOD_NOT_SUPPORTED",
+            "CAPABILITY_UNAVAILABLE",
+            "INVALID_PAYLOAD",
+            "PAYLOAD_TOO_LARGE",
+            "TIMEOUT",
+            "RATE_LIMITED",
+            "CANCELLED",
+            "PAYMENT_URL_NOT_ALLOWED",
+            "PAYMENT_USER_ACTION_REQUIRED",
+            "PAYMENT_IN_PROGRESS",
+            "PAYMENT_RECOVERY_FAILED",
+            "PAYMENT_RECOVERY_EXPIRED",
+            "PAYMENT_RECOVERY_NOT_FOUND",
+            "EVENT_NOT_FOUND",
+            "LAUNCH_FAILED",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "retryable": { "type": "boolean" },
+        "details": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "ok": { "const": true },
+        "result": { "type": "object" }
+      },
+      "required": ["result"],
+      "not": {
+        "properties": { "error": {} },
+        "required": ["error"]
+      }
+    },
+    {
+      "properties": {
+        "ok": { "const": false },
+        "error": { "type": "object" }
+      },
+      "required": ["error"],
+      "not": {
+        "properties": { "result": {} },
+        "required": ["result"]
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "share" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status"],
+            "properties": {
+              "capability": { "const": "share" },
+              "status": { "const": "presented" }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "requestLocation" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "capability",
+              "status",
+              "latitude",
+              "longitude",
+              "accuracyMeters",
+              "precise"
+            ],
+            "properties": {
+              "capability": { "const": "requestLocation" },
+              "status": { "const": "granted" },
+              "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+              "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+              "accuracyMeters": { "type": "number", "minimum": 0, "maximum": 100000 },
+              "precise": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "notifications" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status"],
+            "properties": {
+              "capability": { "const": "notifications" },
+              "status": {
+                "enum": [
+                  "notDetermined",
+                  "denied",
+                  "authorized",
+                  "provisional",
+                  "unavailable"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "openPayment" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status"],
+            "properties": {
+              "capability": { "const": "openPayment" },
+              "status": { "enum": ["presented", "alreadyActive"] }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "nativeEvents" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status", "eventId"],
+            "properties": {
+              "capability": { "const": "nativeEvents" },
+              "status": { "const": "acknowledged" },
+              "eventId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "result": {
+            "type": "object",
+            "properties": { "capability": { "const": "paymentRecovery" } },
+            "required": ["capability"]
+          }
+        },
+        "required": ["ok", "result"]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status"],
+            "properties": {
+              "capability": { "const": "paymentRecovery" },
+              "status": { "const": "cleared" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

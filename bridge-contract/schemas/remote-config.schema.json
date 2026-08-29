@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/mobile/v1/remote-config.schema.json",
+  "title": "Food&Home mobile fail-safe configuration v1",
+  "type": "object",
+  "required": ["schemaVersion", "configId", "issuedAt", "expiresAt", "maintenance", "update", "capabilities"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "configId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "maintenance": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "message": { "type": "string", "maxLength": 240 }
+      },
+      "additionalProperties": false
+    },
+    "update": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["none", "soft", "hard"] },
+        "minimumVersion": { "type": "string", "maxLength": 32 },
+        "recommendedVersion": { "type": "string", "maxLength": 32 },
+        "reasonCode": {
+          "enum": ["SECURITY_CRITICAL", "LEGAL_REQUIRED", "PROTOCOL_BLOCKED"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "hard" } } },
+          "then": {
+            "properties": {
+              "minimumVersion": { "type": "string", "maxLength": 32 },
+              "reasonCode": {
+                "enum": ["SECURITY_CRITICAL", "LEGAL_REQUIRED", "PROTOCOL_BLOCKED"]
+              }
+            },
+            "required": ["minimumVersion", "reasonCode"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "share": { "type": "boolean" },
+        "requestLocation": { "type": "boolean" },
+        "openExternal": { "type": "boolean" },
+        "openPayment": { "type": "boolean" },
+        "getNotificationStatus": { "type": "boolean" },
+        "requestNotificationPermission": { "type": "boolean" },
+        "deepLinks": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "payment": {
+      "type": "object",
+      "required": ["flowVersion"],
+      "properties": {
+        "flowVersion": { "enum": ["disabled", "tochka-v1"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

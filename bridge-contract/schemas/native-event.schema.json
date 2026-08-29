@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/bridge/v1/native-event.schema.json",
+  "title": "FoodHomeBridge v1 native event",
+  "type": "object",
+  "required": ["protocol", "version", "eventId", "name", "payload", "occurredAt"],
+  "properties": {
+    "protocol": { "const": "foodhome.bridge" },
+    "version": { "const": 1 },
+    "eventId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "name": {
+      "enum": [
+        "appResumed",
+        "deepLinkReceived",
+        "pushOpened",
+        "networkChanged",
+        "paymentReturned",
+        "permissionChanged"
+      ]
+    },
+    "payload": { "type": "object", "maxProperties": 32 },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "name": { "const": "paymentReturned" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "recoveryContext": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "reason": {
+                "enum": [
+                  "appResumed",
+                  "universalLink",
+                  "appLink",
+                  "coldStart",
+                  "webViewRecovered"
+                ]
+              }
+            },
+            "required": ["recoveryContext", "reason"],
+            "maxProperties": 2,
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

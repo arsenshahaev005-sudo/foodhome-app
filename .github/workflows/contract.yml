@@ -1,0 +1,65 @@
+name: Bridge contract
+
+on:
+  pull_request:
+    paths:
+      - "bridge-contract/**"
+      - "android/app/src/main/**"
+      - "ios/FoodHomeApp/**"
+      - "scripts/verify-secure-shells.mjs"
+      - "scripts/verify-phase-2-integration.mjs"
+      - "scripts/verify-phase-3-capabilities.mjs"
+      - "scripts/verify-phase-4-payments.mjs"
+      - "scripts/verify-phase-5-hardening.mjs"
+      - ".github/workflows/contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bridge-contract/**"
+      - "android/app/src/main/**"
+      - "ios/FoodHomeApp/**"
+      - "scripts/verify-secure-shells.mjs"
+      - "scripts/verify-phase-2-integration.mjs"
+      - "scripts/verify-phase-3-capabilities.mjs"
+      - "scripts/verify-phase-4-payments.mjs"
+      - "scripts/verify-phase-5-hardening.mjs"
+      - ".github/workflows/contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: bridge-contract
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: bridge-contract/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - name: Verify secure shell invariants
+        working-directory: .
+        run: node scripts/verify-secure-shells.mjs
+      - name: Verify Phase 2 integration invariants
+        working-directory: .
+        run: node scripts/verify-phase-2-integration.mjs
+      - name: Verify Phase 3 native capability invariants
+        working-directory: .
+        run: node scripts/verify-phase-3-capabilities.mjs
+      - name: Verify Phase 4 payment invariants
+        working-directory: .
+        run: node scripts/verify-phase-4-payments.mjs
+      - name: Verify Phase 5 hardening and release-readiness invariants
+        working-directory: .
+        run: node scripts/verify-phase-5-hardening.mjs

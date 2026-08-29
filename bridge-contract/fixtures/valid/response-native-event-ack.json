@@ -1,0 +1,11 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "event-ack-1",
+  "ok": true,
+  "result": {
+    "capability": "nativeEvents",
+    "status": "acknowledged",
+    "eventId": "payment-returned-1"
+  }
+}

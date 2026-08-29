@@ -1,0 +1,9 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 2,
+  "requestId": "unsupported-version",
+  "method": "share",
+  "payload": {
+    "url": "https://foodhome.market/dishes/123"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "protocol": "other.bridge",
+  "version": 1,
+  "requestId": "wrong-protocol",
+  "method": "share",
+  "payload": {
+    "url": "https://foodhome.market/dishes/123"
+  }
+}

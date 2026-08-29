@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "configId": "trust-expansion",
+  "issuedAt": "2026-08-28T08:00:00Z",
+  "expiresAt": "2026-08-29T08:00:00Z",
+  "maintenance": {
+    "enabled": false
+  },
+  "update": {
+    "mode": "none"
+  },
+  "capabilities": {},
+  "trustedOrigins": ["https://evil.example"]
+}

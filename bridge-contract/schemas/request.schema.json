@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/bridge/v1/request.schema.json",
+  "title": "FoodHomeBridge v1 request",
+  "type": "object",
+  "required": ["protocol", "version", "requestId", "method", "payload"],
+  "properties": {
+    "protocol": { "const": "foodhome.bridge" },
+    "version": { "const": 1 },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+    },
+    "method": {
+      "enum": [
+        "share",
+        "requestLocation",
+        "openExternal",
+        "openPayment",
+        "ackNativeEvent",
+        "clearPaymentRecovery",
+        "getNotificationStatus",
+        "requestNotificationPermission"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "maxProperties": 32
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "method": { "const": "share" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "maxLength": 120 },
+              "text": { "type": "string", "maxLength": 1000 },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "pattern": "^https://foodhome\\.market(?:/|$)"
+              }
+            },
+            "required": ["url"],
+            "maxProperties": 3,
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "requestLocation" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "purpose": { "type": "string", "minLength": 1, "maxLength": 160 }
+            },
+            "required": ["purpose"],
+            "maxProperties": 2,
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "getNotificationStatus" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "maxProperties": 1,
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "requestNotificationPermission" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "purpose": { "type": "string", "minLength": 1, "maxLength": 160 }
+            },
+            "maxProperties": 2,
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "openExternal" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "pattern": "^https://"
+              }
+            },
+            "required": ["url"],
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "openPayment" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "pattern": "^https://"
+              },
+              "recoveryContext": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": ["url", "recoveryContext", "expiresAt"],
+            "maxProperties": 3,
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "ackNativeEvent" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              }
+            },
+            "required": ["eventId"],
+            "maxProperties": 1,
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "clearPaymentRecovery" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "recoveryContext": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "reason": {
+                "enum": ["terminal", "expired", "logout", "accountChanged", "abandoned"]
+              }
+            },
+            "required": ["recoveryContext", "reason"],
+            "maxProperties": 2,
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

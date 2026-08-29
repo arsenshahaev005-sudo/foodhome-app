@@ -1,0 +1,11 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "eventId": "payment-returned-1",
+  "name": "paymentReturned",
+  "payload": {
+    "recoveryContext": "opaque-context.2f3142e4",
+    "reason": "appResumed"
+  },
+  "occurredAt": "2026-08-29T11:00:00Z"
+}

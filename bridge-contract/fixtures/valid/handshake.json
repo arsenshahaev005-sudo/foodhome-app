@@ -1,0 +1,10 @@
+{
+  "protocol": "foodhome.bridge",
+  "selectedVersion": 1,
+  "supportedVersions": [1],
+  "appVersion": "0.1.0",
+  "buildNumber": "1",
+  "platform": "ios",
+  "builtInCapabilities": ["openPayment", "share"],
+  "capabilities": ["share"]
+}

@@ -1,0 +1,7 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "notifications-status-1",
+  "method": "getNotificationStatus",
+  "payload": {}
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Food&amp;Home</string>
+    <string name="share_chooser_title">Поделиться Food&amp;Home</string>
+    <string name="location_confirmation_title">Разрешить геолокацию?</string>
+    <string name="notification_confirmation_title">Включить уведомления?</string>
+    <string name="permission_cancel">Не сейчас</string>
+    <string name="permission_continue">Продолжить</string>
+    <string name="media_source_title">Добавить изображение</string>
+    <string name="media_source_photos">Выбрать фото</string>
+    <string name="media_source_camera">Сделать фото</string>
+    <string name="notification_channel_updates_name">Обновления Food&amp;Home</string>
+    <string name="notification_channel_updates_description">Сигналы об актуальных событиях без личных данных</string>
+</resources>

@@ -1,0 +1,12 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "duplicate-terminal",
+  "ok": true,
+  "result": {},
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Must not coexist with result",
+    "retryable": false
+  }
+}

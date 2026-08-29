@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "configId": "expired",
+  "issuedAt": "2026-08-20T08:00:00Z",
+  "expiresAt": "2026-08-21T08:00:00Z",
+  "maintenance": {
+    "enabled": true,
+    "message": "Expired maintenance must not apply"
+  },
+  "update": {
+    "mode": "hard",
+    "minimumVersion": "99.0.0",
+    "reasonCode": "SECURITY_CRITICAL"
+  },
+  "capabilities": {
+    "share": true
+  }
+}
