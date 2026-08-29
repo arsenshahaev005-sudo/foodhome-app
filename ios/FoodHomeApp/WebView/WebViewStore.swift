@@ -577,6 +577,7 @@ private final class PaymentUserActionTracker {
 }
 
 extension WebViewStore: WKUIDelegate {
+    @available(iOS 18.4, *)
     func webView(
         _ webView: WKWebView,
         runOpenPanelWith parameters: WKOpenPanelParameters,

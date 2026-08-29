@@ -94,6 +94,11 @@ for (const file of [
 const iosWebViewPath = "ios/FoodHomeApp/WebView/WebViewStore.swift";
 const iosWebView = read(iosWebViewPath);
 requireText(iosWebView, "runOpenPanelWith parameters", iosWebViewPath);
+assert.match(
+  iosWebView,
+  /@available\(iOS 18\.4, \*\)\s+func webView\(\s+_ webView: WKWebView,\s+runOpenPanelWith parameters: WKOpenPanelParameters,/,
+  "iOS file-picker delegate must be availability-gated without raising the app deployment target",
+);
 requireText(iosWebView, "frame.isMainFrame", iosWebViewPath);
 requireText(iosWebView, "mediaPickerCoordinator.present", iosWebViewPath);
 
