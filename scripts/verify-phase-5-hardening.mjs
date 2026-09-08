@@ -268,6 +268,19 @@ const iosWorkflowPath = ".github/workflows/ios.yml";
 const iosWorkflow = read(iosWorkflowPath);
 requireText(iosWorkflow, "-parallel-testing-enabled NO", iosWorkflowPath);
 
+// Required checks must report a result even for changes outside their platform.
+for (const workflowPath of [
+  ".github/workflows/android.yml",
+  ".github/workflows/ios.yml",
+  ".github/workflows/contract.yml",
+]) {
+  assert.match(
+    read(workflowPath),
+    /^  pull_request: \{\}\r?$/m,
+    `${workflowPath} must use an unfiltered pull_request trigger so required checks cannot remain Expected`,
+  );
+}
+
 const androidNavigationPath =
   "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";
 const androidNavigation = read(androidNavigationPath);

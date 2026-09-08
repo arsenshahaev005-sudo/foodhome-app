@@ -119,3 +119,27 @@ not interpret it as full application or store-release acceptance.
 The verification above was completed locally; GitHub Actions results are
 tracked separately on the pull request. No production deployment, release
 signing or website changes are included.
+
+## Required-check trigger follow-up — 2026-09-09
+
+PR #2 initially passed Android and Bridge contract checks, but the required
+`iOS` check remained `Expected`: its workflow-level `pull_request.paths`
+filter excluded the Android-only change, so no iOS workflow run was created.
+This is a trigger configuration issue, not an observed iOS test failure.
+
+All three required workflows now use an unfiltered `pull_request: {}` trigger.
+This also prevents the same deadlock on iOS-only or documentation-only PRs.
+The tradeoff is running all three suites on every PR update. Main-branch push
+path filters, job/check names, permissions, pinned actions, runners and actual
+build/test commands are unchanged. Branch protection is not weakened.
+
+`verify-phase-5-hardening.mjs` now requires that explicit unfiltered PR trigger
+in all three workflows. The new assertion failed against the previous
+configuration and passed after the fix. All five invariant scripts and all
+23 bridge tests passed again. YAML parsing and a semantic comparison confirmed
+that only the PR triggers changed in the workflows; `git diff --check` passed.
+
+The CI-only follow-up does not change native application code or rebuild the
+local APK. Results on the new PR commit must be checked in GitHub Actions;
+earlier green runs are not evidence that this new commit passed. Merge remains
+the owner's action after all required checks succeed.

@@ -1,12 +1,8 @@
 name: iOS
 
 on:
-  pull_request:
-    paths:
-      - "ios/**"
-      - "bridge-contract/manifest.json"
-      - "scripts/verify-phase-5-hardening.mjs"
-      - ".github/workflows/ios.yml"
+  # Required checks must run on every PR, including documentation-only changes.
+  pull_request: {}
   push:
     branches: [main]
     paths:
