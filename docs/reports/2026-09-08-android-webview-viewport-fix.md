@@ -143,3 +143,38 @@ The CI-only follow-up does not change native application code or rebuild the
 local APK. Results on the new PR commit must be checked in GitHub Actions;
 earlier green runs are not evidence that this new commit passed. Merge remains
 the owner's action after all required checks succeed.
+
+## iOS simulator environment follow-up — 2026-09-09
+
+After the trigger fix, iOS run `34272502501` started but exited with code 70
+before compilation or tests: no concrete simulator matched `OS=latest` and
+`name=iPhone 16 Pro`. Xcode project syntax passed. The runner selected Xcode
+16.4 by default and listed only generic destinations; this is not evidence
+of a failed application test. The log alone does not explain why the runner's
+pre-created devices were unavailable.
+
+The workflow now explicitly selects Xcode 26.3 with the iOS 26.2 runtime and
+iPhone 16 Pro device type, a pairing listed in the
+[runner image inventory](https://github.com/actions/runner-images/blob/macos-15-arm64/20260829.0321/images/macos/macos-15-arm64-Readme.md).
+It initializes Xcode components, prints toolchain/runtime/device diagnostics,
+checks that the exact runtime is available, creates its own isolated simulator,
+validates the returned UDID and waits for boot completion before testing that
+UDID. Preparation is bounded to eight minutes within the existing 30-minute
+job limit. It fails explicitly if preparation fails; it does not silently
+select another runtime, skip tests or download an unreviewed latest runtime.
+The disposable GitHub-hosted VM owns this test device; no physical device,
+signing credentials or application data is used.
+
+All unit/UI tests, disabled parallel test execution, unsigned simulator Release
+build, required-check name and branch protection remain intact. Native source
+and minimum supported iOS version are unchanged. This compiler/runtime update
+is CI validation, not App Store signing or release acceptance.
+
+Local validation: the extended source invariant failed before the workflow
+change and passed afterwards; all five invariant scripts and 23 bridge tests
+passed. YAML parsing and Bash syntax validation passed. Six shell-control-flow
+cases with mocked Xcode/simctl/jq commands covered success, missing Xcode,
+unavailable runtime, malformed UDID, boot failure and boot-wait failure. These
+mocks do not verify Apple's tools or execute native tests. Actual simulator
+preparation, compilation and test results must be verified on the new GitHub
+Actions commit; Windows cannot run Xcode locally.

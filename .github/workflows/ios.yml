@@ -23,17 +23,57 @@ jobs:
     name: iOS
     runs-on: macos-15
     timeout-minutes: 30
+    # Keep the toolchain and simulator runtime paired; do not use runner defaults.
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      IOS_SIMULATOR_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-26-2
+      IOS_SIMULATOR_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Inspect Xcode project
         run: plutil -lint ios/FoodHomeApp.xcodeproj/project.pbxproj
+      - name: Prepare pinned Xcode and iOS simulator
+        id: simulator
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -d "$DEVELOPER_DIR" ]]; then
+            echo "::error::Pinned Xcode is missing: $DEVELOPER_DIR"
+            exit 1
+          fi
+          sudo xcode-select --switch "$DEVELOPER_DIR"
+          sudo xcodebuild -runFirstLaunch
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+          if ! xcrun simctl list runtimes --json | jq -e \
+            --arg runtime "$IOS_SIMULATOR_RUNTIME" \
+            '.runtimes | any(.identifier == $runtime and .isAvailable == true)' >/dev/null; then
+            echo "::error::Pinned iOS simulator runtime is unavailable: $IOS_SIMULATOR_RUNTIME"
+            exit 1
+          fi
+          # Create our own device: pre-created devices may be absent on fresh runners.
+          simulator_udid=$(xcrun simctl create "FoodHome-CI-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            "$IOS_SIMULATOR_DEVICE_TYPE" "$IOS_SIMULATOR_RUNTIME")
+          if [[ ! "$simulator_udid" =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]]; then
+            echo "::error::simctl did not return a valid simulator identifier"
+            exit 1
+          fi
+          xcrun simctl boot "$simulator_udid"
+          xcrun simctl bootstatus "$simulator_udid" -b
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcodebuild -showdestinations -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp
       - name: Build and run unit and UI smoke tests
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
         run: >-
           xcodebuild
           -project ios/FoodHomeApp.xcodeproj
           -scheme FoodHomeApp
           -sdk iphonesimulator
-          -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro'
+          -destination "platform=iOS Simulator,id=$SIMULATOR_UDID"
           -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=NO
           test
