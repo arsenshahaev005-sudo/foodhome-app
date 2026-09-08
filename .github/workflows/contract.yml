@@ -1,17 +1,8 @@
 name: Bridge contract
 
 on:
-  pull_request:
-    paths:
-      - "bridge-contract/**"
-      - "android/app/src/main/**"
-      - "ios/FoodHomeApp/**"
-      - "scripts/verify-secure-shells.mjs"
-      - "scripts/verify-phase-2-integration.mjs"
-      - "scripts/verify-phase-3-capabilities.mjs"
-      - "scripts/verify-phase-4-payments.mjs"
-      - "scripts/verify-phase-5-hardening.mjs"
-      - ".github/workflows/contract.yml"
+  # Required checks must run on every PR, including documentation-only changes.
+  pull_request: {}
   push:
     branches: [main]
     paths:

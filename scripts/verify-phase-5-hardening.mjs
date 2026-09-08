@@ -267,6 +267,36 @@ requireText(
 const iosWorkflowPath = ".github/workflows/ios.yml";
 const iosWorkflow = read(iosWorkflowPath);
 requireText(iosWorkflow, "-parallel-testing-enabled NO", iosWorkflowPath);
+for (const expected of [
+  "DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer",
+  "IOS_SIMULATOR_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+  "IOS_SIMULATOR_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro",
+  'sudo xcode-select --switch "$DEVELOPER_DIR"',
+  "sudo xcodebuild -runFirstLaunch",
+  "xcrun simctl list runtimes --json",
+  ".isAvailable == true",
+  "xcrun simctl create",
+  'xcrun simctl bootstatus "$simulator_udid" -b',
+  "SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}",
+  '-destination "platform=iOS Simulator,id=$SIMULATOR_UDID"',
+]) {
+  requireText(iosWorkflow, expected, iosWorkflowPath);
+}
+forbidText(iosWorkflow, "OS=latest", iosWorkflowPath);
+forbidText(iosWorkflow, "continue-on-error:", iosWorkflowPath);
+
+// Required checks must report a result even for changes outside their platform.
+for (const workflowPath of [
+  ".github/workflows/android.yml",
+  ".github/workflows/ios.yml",
+  ".github/workflows/contract.yml",
+]) {
+  assert.match(
+    read(workflowPath),
+    /^  pull_request: \{\}\r?$/m,
+    `${workflowPath} must use an unfiltered pull_request trigger so required checks cannot remain Expected`,
+  );
+}
 
 const androidNavigationPath =
   "android/app/src/main/java/market/foodhome/app/navigation/NavigationPolicy.kt";

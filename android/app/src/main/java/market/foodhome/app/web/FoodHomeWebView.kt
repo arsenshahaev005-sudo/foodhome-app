@@ -16,6 +16,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.view.MotionEvent
+import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -102,6 +103,13 @@ fun FoodHomeWebView(
             var documentAttachment: TrustedDocumentAttachment? = null
             var mainFrameFailed = false
             WebView(context).apply {
+                // AndroidView's default child params are WRAP_CONTENT even with fillMaxSize.
+                // WebView then forces CSS layout height to zero, breaking viewport units,
+                // scrolling and IME caret placement. Let the measured Compose bounds size it.
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
                 ownedWebView = this
                 WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
                 settings.javaScriptEnabled = true
