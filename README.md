@@ -41,6 +41,15 @@ Android builds require JDK 17 and an Android SDK. Run the repository Gradle wrap
 
 iOS builds require a supported macOS and Xcode installation. Continuous integration builds and tests an unsigned simulator target; production signing material is not stored in this repository.
 
+## Android notifications
+
+Android push is disabled by default. Firebase ownership/configuration and the
+matching website/server integration are required before activation. Follow the
+[setup runbook](docs/runbooks/android-push-setup.md) and
+[cross-repository contract](docs/integration/android-visible-push-v2.md).
+See the [local verification report](docs/reports/2026-09-09-android-push.md) for
+completed checks and remaining delivery gates.
+
 ## Security and source use
 
 The production container trusts only the exact HTTPS origin `https://foodhome.market`. Native bridge capabilities are restricted to that origin and fail closed when validation or platform support is unavailable.

@@ -25,6 +25,7 @@ const manifest = await loadJson("manifest.json");
 const packageMetadata = await loadJson("package.json");
 const packageLock = await loadJson("package-lock.json");
 const schemas = {
+  push: await loadJson("schemas/push.schema.json"),
   request: await loadJson("schemas/request.schema.json"),
   response: await loadJson("schemas/response.schema.json"),
   handshake: await loadJson("schemas/handshake.schema.json"),
@@ -124,12 +125,31 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.4.0");
+  assert.equal(manifest.contractVersion, "1.5.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);
   assert.equal(manifest.bridgeMajor, 1);
   assert.deepEqual(manifest.supportedVersions, [1]);
+});
+
+test("Android push is platform-specific and never advertised by an unconfigured binary manifest", () => {
+  assert.deepEqual(manifest.platformBuiltInCapabilities, { android: ["managePush"], ios: [] });
+  assert.equal(manifest.advertisedCapabilities.includes("managePush"), false);
+  assert.equal(manifest.compiledCapabilities.includes("managePush"), false);
+  assert.ok(schemas.handshake.properties.capabilities.items.enum.includes("managePush"));
+});
+
+test("push application v2 stays separate from silent v1 and bounds routing", async () => {
+  const fixture = await loadJson("fixtures/valid/push-order.json");
+  for (const changed of [
+    { ...fixture, version: 1 },
+    { ...fixture, bindingId: undefined },
+    { ...fixture, eventType: "chat.message" },
+    { ...fixture, route: "https://attacker.example/" },
+    { ...fixture, title: "private" },
+    { ...fixture, route: { ...fixture.route, params: { id: "../auth" } } },
+  ]) assert.equal(validators.push(changed), false);
 });
 
 test("native mode has one early non-authoritative bootstrap contract", () => {
@@ -156,7 +176,7 @@ test("sensitive v1 methods have bounded rate-limit policy", () => {
   }
   assert.deepEqual(
     Object.keys(manifest.rateLimits).sort(),
-    ["openPayment", "requestLocation", "requestNotificationPermission"],
+    ["managePush", "openPayment", "requestLocation", "requestNotificationPermission"],
   );
 });
 

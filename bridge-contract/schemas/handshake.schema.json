@@ -30,6 +30,7 @@
       "type": "array",
       "items": {
         "enum": [
+          "managePush",
           "share",
           "requestLocation",
           "openExternal",
@@ -46,6 +47,7 @@
       "type": "array",
       "items": {
         "enum": [
+          "managePush",
           "share",
           "requestLocation",
           "openExternal",

@@ -27,6 +27,7 @@ class AndroidCapabilityCoordinator(
     private val hasRecentPaymentUserAction: () -> Boolean = { false },
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val telemetry: TelemetryReporter = TelemetryReporter.disabled(trustedOrigin),
+    private val managePush: ((JSONObject, (BridgeDispatchResult) -> Unit) -> Unit)? = null,
 ) : BridgeCapabilityDispatcher {
     private val sharePolicy = FoodHomeSharePolicy(trustedOrigin)
     private val rateLimiter = CapabilityRateLimiter(nowMillis)
@@ -54,6 +55,11 @@ class AndroidCapabilityCoordinator(
         }
 
         when (request.method) {
+            "managePush" -> {
+                if (request.payload.optString("action") == "bind" &&
+                    !enforceRateLimit("managePush", reportingCompletion)) return
+                managePush?.invoke(request.payload, reportingCompletion) ?: reportingCompletion(unavailable())
+            }
             "share" -> dispatchShare(request, reportingCompletion)
             "requestLocation" -> dispatchLocation(request, reportingCompletion)
             "getNotificationStatus" -> reportingCompletion(notificationResult(notificationStatus()))

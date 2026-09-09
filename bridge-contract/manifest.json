@@ -1,6 +1,6 @@
 {
   "protocol": "foodhome.bridge",
-  "contractVersion": "1.4.0",
+  "contractVersion": "1.5.0",
   "bridgeMajor": 1,
   "supportedVersions": [1],
   "globalObjectName": "FoodHomeBridge",
@@ -33,6 +33,7 @@
     "maxUrlLength": 2048
   },
   "methods": [
+    "managePush",
     "share",
     "requestLocation",
     "openExternal",
@@ -43,6 +44,7 @@
     "requestNotificationPermission"
   ],
   "rateLimits": {
+    "managePush": { "maxRequests": 5, "windowSeconds": 60 },
     "requestLocation": { "maxRequests": 3, "windowSeconds": 60 },
     "openPayment": { "maxRequests": 3, "windowSeconds": 60 },
     "requestNotificationPermission": { "maxRequests": 1, "windowSeconds": 30 }
@@ -81,6 +83,7 @@
     "INTERNAL_ERROR"
   ],
   "phase0Capabilities": [],
+  "platformBuiltInCapabilities": { "android": ["managePush"], "ios": [] },
   "builtInCapabilities": [
     "getNotificationStatus",
     "openPayment",

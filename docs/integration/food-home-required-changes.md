@@ -2,7 +2,11 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The native shells consume immutable bridge artifact `1.4.0`. Server authorization and product behavior remain web-authoritative.
+The native shells consume immutable bridge artifact `1.5.0`. Server authorization and product behavior remain web-authoritative.
+
+Android visible push has a separate, currently disabled activation contract:
+[Android visible push v2](android-visible-push-v2.md). The native client does not
+claim compatibility with the old silent delivery payload for visible alerts.
 
 | Marker | Public responsibility summary |
 | --- | --- |

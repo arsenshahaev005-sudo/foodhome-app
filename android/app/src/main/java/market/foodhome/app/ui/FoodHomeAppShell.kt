@@ -48,6 +48,7 @@ import market.foodhome.app.media.TemporaryCaptureStore
 import market.foodhome.app.media.VisualMediaKind
 import market.foodhome.app.navigation.NavigationCoordinator
 import market.foodhome.app.notifications.AndroidNotificationCoordinator
+import market.foodhome.app.notifications.AndroidPushRuntime
 import market.foodhome.app.notifications.NotificationPermissionResult
 import market.foodhome.app.recovery.CrashLoopBreaker
 import market.foodhome.app.payments.AndroidPaymentReturnRouter
@@ -263,6 +264,9 @@ fun FoodHomeAppShell(
                 elapsed in 0..2_000
             },
             telemetry = telemetry,
+            managePush = { payload, completion ->
+                AndroidPushRuntime.get(context).dispatch(payload, manifest.contractVersion, completion)
+            },
         )
     }
 
