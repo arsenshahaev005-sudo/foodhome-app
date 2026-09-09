@@ -1,0 +1,1 @@
+{"version":2,"eventType":"order.updated","eventId":"7d85d3b1-6392-4e1e-81a1-673ea6e23509","bindingId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","expiresAt":"2026-09-09T10:10:00Z","route":{"protocol":"foodhome.logical-route","version":1,"name":"order.detail","params":{"id":"7d85d3b1-6392-4e1e-81a1-673ea6e23509"},"query":{}}}

@@ -15,6 +15,7 @@
     },
     "method": {
       "enum": [
+        "managePush",
         "share",
         "requestLocation",
         "openExternal",
@@ -31,6 +32,32 @@
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "method": { "const": "managePush" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "oneOf": [
+              {
+                "required": ["action"],
+                "properties": { "action": { "enum": ["status", "clear"] } },
+                "additionalProperties": false
+              },
+              {
+                "required": ["action", "nonce", "expiresAt"],
+                "properties": {
+                  "action": { "enum": ["bind", "revoke"] },
+                  "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+                  "expiresAt": { "type": "string", "format": "date-time" }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      }
+    },
     {
       "if": { "properties": { "method": { "const": "share" } } },
       "then": {

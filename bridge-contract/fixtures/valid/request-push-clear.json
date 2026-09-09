@@ -1,0 +1,1 @@
+{"protocol":"foodhome.bridge","version":1,"requestId":"push-clear-1","method":"managePush","payload":{"action":"clear"}}

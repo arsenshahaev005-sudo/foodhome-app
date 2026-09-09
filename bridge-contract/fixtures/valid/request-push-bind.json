@@ -1,0 +1,1 @@
+{"protocol":"foodhome.bridge","version":1,"requestId":"push-bind-1","method":"managePush","payload":{"action":"bind","nonce":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","expiresAt":"2026-09-09T10:02:00Z"}}

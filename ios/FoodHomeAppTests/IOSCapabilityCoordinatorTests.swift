@@ -27,7 +27,7 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
 
     func testBundledManifestBuildsPaymentButDoesNotAdvertiseIt() throws {
         let value = try XCTUnwrap(BridgeManifest.load())
-        XCTAssertEqual(value.contractVersion, "1.4.0")
+        XCTAssertEqual(value.contractVersion, "1.5.0")
         XCTAssertEqual(value.limits.maxJsonDepth, 12)
         XCTAssertEqual(value.limits.maxJsonNodes, 512)
         XCTAssertEqual(

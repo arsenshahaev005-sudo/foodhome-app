@@ -47,7 +47,7 @@ for (const file of requiredFiles) requireFile(file);
 
 const manifestPath = "bridge-contract/manifest.json";
 const manifest = JSON.parse(read(manifestPath));
-assert.equal(manifest.contractVersion, "1.4.0");
+assert.equal(manifest.contractVersion, "1.5.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.equal(manifest.limits.maxJsonDepth, 12);
 assert.equal(manifest.limits.maxJsonNodes, 512);
@@ -55,6 +55,7 @@ assert.ok(manifest.builtInCapabilities.includes("openPayment"));
 assert.equal(manifest.advertisedCapabilities.includes("openPayment"), false);
 assert.equal(manifest.compiledCapabilities.includes("openPayment"), false);
 assert.deepEqual(manifest.rateLimits, {
+  managePush: { maxRequests: 5, windowSeconds: 60 },
   requestLocation: { maxRequests: 3, windowSeconds: 60 },
   openPayment: { maxRequests: 3, windowSeconds: 60 },
   requestNotificationPermission: { maxRequests: 1, windowSeconds: 30 },
@@ -332,7 +333,7 @@ for (const task of [
 ]) {
   requireText(dependencies, task, dependencyPath);
 }
-requireText(dependencies, "artifact `1.4.0`", dependencyPath);
+requireText(dependencies, "artifact `1.5.0`", dependencyPath);
 
 const threatModel = read("docs/security/mobile-threat-model.md");
 for (const required of ["First-party XSS", "Forged redirect", "Supply-chain", "Telemetry"]) {

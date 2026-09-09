@@ -16,6 +16,17 @@ val debugBaseUrl = providers.gradleProperty("FOODHOME_DEBUG_BASE_URL")
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
 
+// A configuration file alone never opts a build or user into push delivery.
+val nativePushEnabled = providers.gradleProperty("FOODHOME_NATIVE_PUSH_ENABLED")
+    .map(String::toBooleanStrict).orElse(false).get()
+if (nativePushEnabled) {
+    require(file("google-services.json").isFile) {
+        "Native push requires an owner-provided app/google-services.json (never commit it)"
+    }
+    require(debugBaseUrl.isEmpty()) { "Native push is restricted to the production origin" }
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "market.foodhome.app"
     compileSdk = 37
@@ -25,8 +36,9 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+        buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -58,6 +70,7 @@ android {
     testOptions {
         unitTests.all {
             it.useJUnit()
+            it.systemProperty("foodhome.contractRoot", rootProject.file("../bridge-contract").absolutePath)
         }
     }
 
@@ -94,6 +107,9 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.okhttp)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.webkit)

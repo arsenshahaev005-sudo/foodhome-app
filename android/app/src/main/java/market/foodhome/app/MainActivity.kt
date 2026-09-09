@@ -11,6 +11,9 @@ import market.foodhome.app.config.AppEnvironmentResolver
 import market.foodhome.app.navigation.NavigationPolicy
 import market.foodhome.app.navigation.NavigationCoordinator
 import market.foodhome.app.notifications.PushPayloadPolicy
+import market.foodhome.app.notifications.AndroidPushRuntime
+import market.foodhome.app.notifications.PushNotificationPresenter
+import org.json.JSONObject
 import market.foodhome.app.payments.AndroidPaymentLauncher
 import market.foodhome.app.payments.AndroidPaymentReturnRouter
 import market.foodhome.app.payments.PaymentCoordinator
@@ -49,7 +52,7 @@ class MainActivity : ComponentActivity() {
         intent.dataString?.let(::offerDeepLink)
         offerPushRoute(intent)
 
-        val manifest = assets.open("manifest.json").use(BridgeManifest::from)
+        val manifest = assets.open("manifest.json").use(BridgeManifest::from).forAndroidPush(BuildConfig.NATIVE_PUSH_ENABLED)
         telemetry.record(
             TelemetryEventName.ShellLaunch,
             mapOf(
@@ -102,6 +105,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun offerPushRoute(intent: Intent) {
+        val visiblePayload = intent.getStringExtra(PushNotificationPresenter.EXTRA_PAYLOAD)
+        if (visiblePayload != null) {
+            intent.removeExtra(PushNotificationPresenter.EXTRA_PAYLOAD)
+            if (visiblePayload.toByteArray(Charsets.UTF_8).size > 4_096) return
+            val data = runCatching {
+                val json = JSONObject(visiblePayload)
+                json.keys().asSequence().associateWith { json.get(it) as String }
+            }.getOrNull() ?: return
+            AndroidPushRuntime.get(this).destinationForTap(data)?.let(navigationCoordinator::offerDeepLink)
+            return
+        }
         val payload = buildMap {
             for (key in listOf("eventId", "route", "type")) {
                 intent.getStringExtra(key)?.let { put(key, it) }

@@ -72,6 +72,28 @@
   "allOf": [
     {
       "if": {
+        "required": ["ok", "result"],
+        "properties": {
+          "ok": { "const": true },
+          "result": { "type": "object", "required": ["capability"], "properties": { "capability": { "const": "push" } } }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["capability", "status"],
+            "properties": {
+              "capability": { "const": "push" },
+              "status": { "enum": ["enabled", "disabled", "needsBinding", "permissionDenied", "unavailable"] }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": {
           "ok": { "const": true },
           "result": {

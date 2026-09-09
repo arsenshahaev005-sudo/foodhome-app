@@ -5,6 +5,7 @@ import market.foodhome.app.capabilities.FoodHomeSharePolicy
 import org.json.JSONObject
 import java.net.URI
 import java.time.Instant
+import market.foodhome.app.notifications.PushBindingPolicy
 
 class BridgePayloadPolicy(
     trustedOrigin: URI,
@@ -17,6 +18,7 @@ class BridgePayloadPolicy(
             return false
         }
         return when (method) {
+            "managePush" -> PushBindingPolicy.accepts(payload)
             "share" -> {
                 if (
                     payload.length() > 3 ||

@@ -35,6 +35,9 @@ class AndroidNotificationCoordinator(
     }
 
     fun authorizationStatus(): NotificationAuthorizationStatus {
+        if (context.getSystemService(NotificationManager::class.java)
+                .getNotificationChannel(UPDATES_CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE
+        ) return NotificationAuthorizationStatus.Denied
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             return if (permissionWasRequested()) {
                 NotificationAuthorizationStatus.Denied

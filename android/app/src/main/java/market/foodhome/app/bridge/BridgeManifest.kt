@@ -42,6 +42,12 @@ data class BridgeManifest(
     val maxJsonNodes: Int = 512,
     val rateLimits: Map<String, RateLimitRule> = emptyMap(),
 ) {
+    fun forAndroidPush(enabled: Boolean): BridgeManifest = copy(
+        builtInCapabilities = builtInCapabilities + "managePush",
+        advertisedCapabilities = if (enabled) advertisedCapabilities + "managePush" else advertisedCapabilities - "managePush",
+        compiledCapabilities = if (enabled) compiledCapabilities + "managePush" else compiledCapabilities - "managePush",
+    )
+
     companion object {
         fun from(input: InputStream): BridgeManifest {
             val json = JSONObject(input.bufferedReader().use { it.readText() })

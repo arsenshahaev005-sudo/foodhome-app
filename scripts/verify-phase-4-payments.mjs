@@ -13,7 +13,7 @@ const forbidText = (content, forbidden, file) => {
 
 const manifestPath = "bridge-contract/manifest.json";
 const manifest = JSON.parse(read(manifestPath));
-assert.equal(manifest.contractVersion, "1.4.0");
+assert.equal(manifest.contractVersion, "1.5.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.ok(manifest.builtInCapabilities.includes("openPayment"));
 assert.equal(manifest.advertisedCapabilities.includes("openPayment"), false);

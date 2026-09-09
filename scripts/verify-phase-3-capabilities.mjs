@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -12,7 +13,7 @@ const forbidText = (content, forbidden, file) => {
 };
 
 const manifest = JSON.parse(read("bridge-contract/manifest.json"));
-assert.equal(manifest.contractVersion, "1.4.0");
+assert.equal(manifest.contractVersion, "1.5.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.deepEqual(manifest.phase0Capabilities, []);
 assert.deepEqual(manifest.compiledCapabilities, [
@@ -38,7 +39,8 @@ forbidText(androidManifest, "android.permission.CAMERA", androidManifestPath);
 requireText(androidManifest, "androidx.core.content.FileProvider", androidManifestPath);
 requireText(androidManifest, 'android:exported="false"', androidManifestPath);
 requireText(androidManifest, '${applicationId}.fileprovider', androidManifestPath);
-assert.equal(existsSync(resolve(root, "android/app/google-services.json")), false);
+assert.equal(execFileSync("git", ["ls-files", "--", "**/google-services.json"], { cwd: root, encoding: "utf8" }).trim(), "");
+requireText(androidManifest, 'android:name="firebase_messaging_auto_init_enabled" android:value="false"', androidManifestPath);
 
 const androidWebViewPath =
   "android/app/src/main/java/market/foodhome/app/web/FoodHomeWebView.kt";

@@ -15,7 +15,7 @@ const manifest = JSON.parse(read("bridge-contract/manifest.json"));
 const packageMetadata = JSON.parse(read("bridge-contract/package.json"));
 const packageLock = JSON.parse(read("bridge-contract/package-lock.json"));
 
-assert.equal(manifest.contractVersion, "1.4.0");
+assert.equal(manifest.contractVersion, "1.5.0");
 assert.equal(packageMetadata.version, manifest.contractVersion);
 assert.equal(packageLock.version, manifest.contractVersion);
 assert.equal(manifest.bridgeMajor, 1);
