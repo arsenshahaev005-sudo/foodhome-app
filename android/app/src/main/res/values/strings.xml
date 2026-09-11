@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="launch_loading">Загрузка Food&amp;Home</string>
     <string name="app_name">Food&amp;Home</string>
     <string name="share_chooser_title">Поделиться Food&amp;Home</string>
     <string name="location_confirmation_title">Разрешить геолокацию?</string>
-    <string name="notification_confirmation_title">Включить уведомления?</string>
     <string name="notification_new_message">У вас новое сообщение. Откройте приложение, чтобы прочитать.</string>
     <string name="notification_order_updated">Статус заказа изменился. Подробности в приложении.</string>
     <string name="notification_generic_update">Есть новые события. Откройте приложение.</string>
+    <string name="notification_settings_action">Настройки</string>
     <string name="permission_cancel">Не сейчас</string>
     <string name="permission_continue">Продолжить</string>
     <string name="media_source_title">Добавить изображение</string>

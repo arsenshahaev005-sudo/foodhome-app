@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/arsenshahaev005-sudo/food-home",
+  "sourceCommit": "6819590a84037c0701994c02250dc1b7c3537055",
+  "sourceStatus": "Selected source files clean in local checkout; not a production deployment claim",
+  "background": "#FFF7ED",
+  "assets": [
+    {
+      "source": "frontend/public/logo.svg",
+      "local": "assets/branding/pwa-logo.svg",
+      "normalization": "UTF-8, LF, single final newline",
+      "sha256": "2eca28ee7694431d9312a2db205152b6470a6016cd62d9867f3dbd2a0fdd3843"
+    },
+    {
+      "source": "frontend/public/manifest-icon-v3-512.png",
+      "local": "android/app/src/main/res/mipmap-nodpi/ic_launcher.png",
+      "sha256": "877b588968e3d2af9902d08a626b76f361acf20fef29ebc5e7f7c9e4695c516b"
+    },
+    {
+      "source": "frontend/public/manifest-icon-v3-maskable-512.png",
+      "local": "android/app/src/main/res/drawable-nodpi/pwa_icon_maskable.png",
+      "sha256": "9f29f537a26fc081e2c0a96f4644eff4a1d111cbeea1db91dfc2182e97635df4"
+    }
+  ]
+}

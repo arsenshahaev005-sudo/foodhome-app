@@ -57,7 +57,11 @@ requireText(androidShell, "ActivityResultContracts.PickVisualMedia", androidShel
 requireText(androidShell, "ActivityResultContracts.TakePicture", androidShellPath);
 requireText(androidShell, "FileProvider.getUriForFile", androidShellPath);
 requireText(androidShell, "showLocationConfirmation = true", androidShellPath);
-requireText(androidShell, "showNotificationConfirmation = true", androidShellPath);
+// Android 0.2.3 replaces the extra pre-prompt with a one-shot OS permission flow.
+forbidText(androidShell, "showNotificationConfirmation", androidShellPath);
+requireText(androidShell, "permissionFlow.request(completion)", androidShellPath);
+requireText(androidShell, "ActivityResultContracts.RequestPermission()", androidShellPath);
+requireText(androidShell, "Lifecycle.State.RESUMED", androidShellPath);
 forbidText(androidShell, "Base64", androidShellPath);
 
 const androidLocationPath =
@@ -77,7 +81,7 @@ forbidText(androidPush, "FirebaseMessagingService", androidPushPath);
 requireText(androidShell, "stringResource(R.string.share_chooser_title)", androidShellPath);
 requireText(
   androidShell,
-  "remember(manifest, environment.trustedOrigin, shareChooserTitle)",
+  "remember(manifest, environment.trustedOrigin, shareChooserTitle, permissionFlow)",
   androidShellPath,
 );
 forbidText(androidShell, "context.getString(R.string.", androidShellPath);

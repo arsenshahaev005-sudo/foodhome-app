@@ -61,6 +61,12 @@ user-enabled chat/order alerts, never silent synchronization. TTL must match exp
 
 ## Required web integration task (food-home)
 
+UX update: for Android 0.2.3/build 5 and newer, follow
+[automatic permission UX](android-notification-permission-ux.md). The owner approved
+authenticated transactional enrollment without the redundant native pre-prompt.
+The original manual flow below remains the compatibility fallback for older shells;
+server consent, revocation and generation checks remain mandatory in both flows.
+
 1. Vendor the pinned 1.5.0 artifact with provenance and negotiate `managePush`.
 2. Keep browser Web Push unchanged. In native mode use the bridge, not PushManager.
 3. Show the existing buyer/seller notification setting with truthful state.

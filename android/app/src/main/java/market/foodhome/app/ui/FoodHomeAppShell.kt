@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import market.foodhome.app.R
 import market.foodhome.app.bridge.BridgeManifest
 import market.foodhome.app.bridge.NativeEventQueue
@@ -49,7 +51,7 @@ import market.foodhome.app.media.VisualMediaKind
 import market.foodhome.app.navigation.NavigationCoordinator
 import market.foodhome.app.notifications.AndroidNotificationCoordinator
 import market.foodhome.app.notifications.AndroidPushRuntime
-import market.foodhome.app.notifications.NotificationPermissionResult
+import market.foodhome.app.notifications.NotificationPermissionFlow
 import market.foodhome.app.recovery.CrashLoopBreaker
 import market.foodhome.app.payments.AndroidPaymentReturnRouter
 import market.foodhome.app.payments.PaymentCoordinator
@@ -57,15 +59,11 @@ import market.foodhome.app.telemetry.TelemetryReporter
 import market.foodhome.app.web.FoodHomeWebView
 import java.io.File
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 private data class PendingLocationRequest(
     val purpose: String,
     val completion: (LocationRequestResult) -> Unit,
-)
-
-private data class PendingNotificationRequest(
-    val purpose: String?,
-    val completion: (NotificationPermissionResult) -> Unit,
 )
 
 private data class PendingMediaRequest(
@@ -84,6 +82,7 @@ fun FoodHomeAppShell(
     onOpenExternal: (Uri) -> Unit,
 ) {
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val shareChooserTitle = stringResource(R.string.share_chooser_title)
     var state: AppShellState by remember { mutableStateOf(AppShellState.Loading) }
     var webViewGeneration by remember { mutableIntStateOf(0) }
@@ -96,8 +95,6 @@ fun FoodHomeAppShell(
     val captureStore = remember { TemporaryCaptureStore(context.cacheDir) }
     var pendingLocation by remember { mutableStateOf<PendingLocationRequest?>(null) }
     var showLocationConfirmation by remember { mutableStateOf(false) }
-    var pendingNotification by remember { mutableStateOf<PendingNotificationRequest?>(null) }
-    var showNotificationConfirmation by remember { mutableStateOf(false) }
     var pendingMedia by remember { mutableStateOf<PendingMediaRequest?>(null) }
     var showMediaSourceChoice by remember { mutableStateOf(false) }
     var activeCaptureFile by remember { mutableStateOf<File?>(null) }
@@ -209,19 +206,39 @@ fun FoodHomeAppShell(
             )
         }
     }
+    // Stable owner; the launcher invokes only this owner's current OS completion.
+    val notificationFlow = remember { AtomicReference<NotificationPermissionFlow?>(null) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
-        val request = pendingNotification ?: return@rememberLauncherForActivityResult
-        pendingNotification = null
-        request.completion(
-            NotificationPermissionResult.Status(
-                notificationCoordinator.authorizationStatus(),
-            ),
+        notificationFlow.get()?.onResult()
+    }
+    val permissionFlow = remember(notificationCoordinator, lifecycle, notificationPermissionLauncher) {
+        NotificationPermissionFlow(
+            status = notificationCoordinator::authorizationStatus,
+            canLaunch = {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            },
+            markAttempted = notificationCoordinator::markPermissionRequested,
+            launch = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    throw IllegalStateException("Runtime notification permission is unavailable")
+                }
+            },
         )
     }
+    DisposableEffect(permissionFlow) {
+        notificationFlow.set(permissionFlow)
+        onDispose {
+            permissionFlow.cancel()
+            notificationFlow.compareAndSet(permissionFlow, null)
+        }
+    }
 
-    val capabilityDispatcher = remember(manifest, environment.trustedOrigin, shareChooserTitle) {
+    val capabilityDispatcher = remember(manifest, environment.trustedOrigin, shareChooserTitle, permissionFlow) {
         AndroidCapabilityCoordinator(
             manifest = manifest,
             trustedOrigin = environment.trustedOrigin,
@@ -253,10 +270,8 @@ fun FoodHomeAppShell(
                 showLocationConfirmation = true
             },
             notificationStatus = notificationCoordinator::authorizationStatus,
-            requestNotificationPermission = { purpose, completion ->
-                pendingNotification?.completion?.invoke(NotificationPermissionResult.Cancelled)
-                pendingNotification = PendingNotificationRequest(purpose, completion)
-                showNotificationConfirmation = true
+            requestNotificationPermission = { _, completion ->
+                permissionFlow.request(completion)
             },
             paymentCoordinator = paymentCoordinator,
             hasRecentPaymentUserAction = {
@@ -265,6 +280,7 @@ fun FoodHomeAppShell(
             },
             telemetry = telemetry,
             managePush = { payload, completion ->
+                if (payload.optString("action") in setOf("clear", "revoke")) permissionFlow.cancel()
                 AndroidPushRuntime.get(context).dispatch(payload, manifest.contractVersion, completion)
             },
         )
@@ -282,7 +298,7 @@ fun FoodHomeAppShell(
             pendingLocation?.completion?.invoke(
                 LocationRequestResult.Failed("CANCELLED", "Location request was cancelled"),
             )
-            pendingNotification?.completion?.invoke(NotificationPermissionResult.Cancelled)
+            permissionFlow.cancel()
             pendingMedia?.callback?.onReceiveValue(null)
         }
     }
@@ -311,8 +327,7 @@ fun FoodHomeAppShell(
                             LocationRequestResult.Failed("CANCELLED", "Location request was cancelled"),
                         )
                         pendingLocation = null
-                        pendingNotification?.completion?.invoke(NotificationPermissionResult.Cancelled)
-                        pendingNotification = null
+                        permissionFlow.cancel()
                         if (loopBlocked) {
                             state = AppShellState.RendererUnavailable(loopBlocked = true)
                         } else {
@@ -387,43 +402,6 @@ fun FoodHomeAppShell(
                                 arrayOf(
                                     Manifest.permission.ACCESS_COARSE_LOCATION,
                                     Manifest.permission.ACCESS_FINE_LOCATION,
-                                ),
-                            )
-                        }
-                    }) { Text(stringResource(R.string.permission_continue)) }
-                },
-            )
-        }
-
-        if (showNotificationConfirmation) {
-            val request = pendingNotification
-            AlertDialog(
-                onDismissRequest = {
-                    showNotificationConfirmation = false
-                    pendingNotification = null
-                    request?.completion?.invoke(NotificationPermissionResult.Cancelled)
-                },
-                title = { Text(stringResource(R.string.notification_confirmation_title)) },
-                text = { Text(request?.purpose ?: "Узнавать об актуальных событиях Food&Home") },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showNotificationConfirmation = false
-                        pendingNotification = null
-                        request?.completion?.invoke(NotificationPermissionResult.Cancelled)
-                    }) { Text(stringResource(R.string.permission_cancel)) }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showNotificationConfirmation = false
-                        if (request == null) return@TextButton
-                        notificationCoordinator.markPermissionRequested()
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            pendingNotification = null
-                            request.completion(
-                                NotificationPermissionResult.Status(
-                                    notificationCoordinator.authorizationStatus(),
                                 ),
                             )
                         }

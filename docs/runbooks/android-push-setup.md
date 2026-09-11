@@ -59,6 +59,35 @@ production credentials or an invented API to get a test to pass.
 
 ## Device acceptance
 
+### Heads-up banners and existing installations
+
+Android 0.2.1 (build 3) creates new `foodhome_updates` channels with
+`IMPORTANCE_HIGH`. Heads-up banners still depend on Android/OEM settings,
+Do Not Disturb and the user's permission; this is not a delivery guarantee.
+Already existing channels are preserved exactly, including the old default
+importance, silent settings and disabled channels. Never delete/recreate or rename
+a channel to bypass user preferences, and do not clear app data or uninstall it.
+
+Expand a Food&Home notification and choose **Настройки** to open the system
+settings for this app's channel. Enable floating/pop-up notifications there if
+desired (labels differ by Android/OEM version). If channel settings are unavailable,
+the action falls back to this app's notification settings or app details. The
+action uses an immutable PendingIntent pinned to a resolved system component;
+it accepts no web-controlled package/channel/URL and contains no push payload.
+If none of these destinations can be resolved, the action is omitted.
+
+Updating the APK does **not** raise an already created channel's importance.
+Test both a fresh channel and an upgrade with existing default/quiet/disabled
+channels. On a real device, independently verify the action destination, optional
+user-enabled banner and unchanged notification-body chat/order navigation.
+
+Focused instrumented regression (isolated `foodhome.test.updates.*` channels only):
+`market.foodhome.app.notifications.NotificationChannelSettingsTest`.
+The tests do not delete or modify the user's `foodhome_updates` channel.
+
+References: [Android notification channels](https://developer.android.com/develop/ui/compose/notifications/channels),
+[scoped package visibility](https://developer.android.com/training/package-visibility/declaring).
+
 - Use working Google services. Direct APK installation does not require publication
   on Google Play. A device without Google services needs a separately designed
   provider integration; that is not silently emulated by polling.

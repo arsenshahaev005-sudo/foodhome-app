@@ -42,6 +42,21 @@ internal class PushNotificationPresenter(private val context: Context) {
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setTimeoutAfter((push.expiresAtMillis - System.currentTimeMillis()).coerceAtLeast(1))
+            .apply {
+                NotificationSettingsIntentFactory.create(context)?.let { settingsIntent ->
+                    val settingsPendingIntent = PendingIntent.getActivity(
+                        context, 1, settingsIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                    addAction(
+                        NotificationCompat.Action.Builder(
+                            android.R.drawable.ic_menu_manage,
+                            context.getString(R.string.notification_settings_action),
+                            settingsPendingIntent,
+                        ).setAuthenticationRequired(true).build(),
+                    )
+                }
+            }
             .build()
         // Permission can be revoked between the check and notify.
         try { manager.notify(push.eventId, 0, notification) } catch (_: SecurityException) { }
