@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/foodhome_launch_background" />
+    <!-- PWA maskable safe circle (80%) fitted into Android's 66/108 safe zone. -->
+    <foreground>
+        <inset android:drawable="@drawable/pwa_icon_maskable" android:inset="12.5%" />
+    </foreground>
+</adaptive-icon>

@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
-internal val FoodHomeBackground = Color(0xFFFFF8F1)
+internal val FoodHomeBackground = Color(0xFFFFF7ED)
 private val FoodHomeAccent = Color(0xFF9B3A22)
 
 @Composable
@@ -25,7 +25,7 @@ fun AppShellSurface(
 ) {
     when (state) {
         AppShellState.Content -> Unit
-        AppShellState.Loading -> StatusPanel("Food&Home", "Загружаем домашнюю еду…")
+        AppShellState.Loading -> FoodHomeLaunchSurface()
         AppShellState.Offline -> RecoveryPanel(
             title = "Нет подключения",
             message = "Проверьте интернет и попробуйте снова.",

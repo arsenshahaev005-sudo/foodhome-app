@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="foodhome_launch_background">#FFF7ED</color>
+    <color name="foodhome_launch_accent">#C9825B</color>
+</resources>

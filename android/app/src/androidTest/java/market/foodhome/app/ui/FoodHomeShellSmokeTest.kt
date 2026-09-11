@@ -3,6 +3,13 @@ package market.foodhome.app.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.runtime.mutableStateOf
+import androidx.test.platform.app.InstrumentationRegistry
+import android.graphics.Bitmap
+import java.io.File
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,9 +30,28 @@ class FoodHomeShellSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag("foodhome.shell.title")
+        composeRule.onNodeWithTag("foodhome.shell.loading")
             .assertIsDisplayed()
-            .assertTextEquals("Food&Home")
+            .assertContentDescriptionEquals("Загрузка Food&Home")
+        composeRule.onNodeWithTag("foodhome.shell.logo").assertIsDisplayed()
+        repeat(3) { composeRule.onNodeWithTag("foodhome.shell.dot.$it").assertIsDisplayed() }
+        val image = composeRule.onNodeWithTag("foodhome.shell.loading").captureToImage().asAndroidBitmap()
+        val directory = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
+        File(directory, "foodhome-loading.png").outputStream().use {
+            image.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+
+    @Test
+    fun loadingDoesNotCoverContentOrRecovery() {
+        val state = mutableStateOf<AppShellState>(AppShellState.Loading)
+        composeRule.setContent { MaterialTheme { AppShellSurface(state.value, onRetry = {}) } }
+        composeRule.onNodeWithTag("foodhome.shell.loading").assertIsDisplayed()
+        composeRule.runOnIdle { state.value = AppShellState.Content }
+        composeRule.onNodeWithTag("foodhome.shell.loading").assertDoesNotExist()
+        composeRule.runOnIdle { state.value = AppShellState.Offline }
+        composeRule.onNodeWithTag("foodhome.shell.loading").assertDoesNotExist()
+        composeRule.onNodeWithTag("foodhome.shell.retry").assertIsDisplayed()
     }
 
     @Test

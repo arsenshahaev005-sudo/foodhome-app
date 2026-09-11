@@ -6,6 +6,7 @@ import android.webkit.CookieManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import market.foodhome.app.bridge.BridgeManifest
 import market.foodhome.app.config.AppEnvironmentResolver
 import market.foodhome.app.navigation.NavigationPolicy
@@ -47,6 +48,8 @@ class MainActivity : ComponentActivity() {
     private var hasResumed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Hand off to the existing loading surface on the first frame; never wait for network here.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         intent.dataString?.let(::offerDeepLink)

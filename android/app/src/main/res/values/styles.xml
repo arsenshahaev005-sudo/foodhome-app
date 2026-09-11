@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FoodHome" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.FoodHome.Base" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#FFF8F1</item>
-        <item name="android:navigationBarColor">#FFF8F1</item>
+        <item name="android:statusBarColor">@color/foodhome_launch_background</item>
+        <item name="android:navigationBarColor">@color/foodhome_launch_background</item>
+        <item name="android:windowBackground">@color/foodhome_launch_background</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
+    <style name="Theme.FoodHome" parent="Theme.FoodHome.Base" />
+    <style name="Theme.FoodHome.Starting.Base" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/foodhome_launch_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/foodhome_splash_wordmark</item>
+        <item name="postSplashScreenTheme">@style/Theme.FoodHome</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/foodhome_launch_background</item>
+        <item name="android:navigationBarColor">@color/foodhome_launch_background</item>
+    </style>
+    <style name="Theme.FoodHome.Starting" parent="Theme.FoodHome.Starting.Base" />
 </resources>

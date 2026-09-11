@@ -10,23 +10,25 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import market.foodhome.app.R
 
-sealed interface NotificationPermissionResult {
-    data class Status(val value: NotificationAuthorizationStatus) : NotificationPermissionResult
-    data object Cancelled : NotificationPermissionResult
-}
-
 class AndroidNotificationCoordinator(
     private val context: Context,
 ) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun createChannels() {
+        createUpdatesChannel(UPDATES_CHANNEL_ID)
+    }
+
+    internal fun createUpdatesChannel(channelId: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
+        // Existing channels belong to the user. Do not raise their importance,
+        // delete/recreate them or replace their ID to override an earlier choice.
+        if (manager.getNotificationChannel(channelId) != null) return
         val channel = NotificationChannel(
-            UPDATES_CHANNEL_ID,
+            channelId,
             context.getString(R.string.notification_channel_updates_name),
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = context.getString(R.string.notification_channel_updates_description)
             setShowBadge(true)
@@ -35,35 +37,24 @@ class AndroidNotificationCoordinator(
     }
 
     fun authorizationStatus(): NotificationAuthorizationStatus {
-        if (context.getSystemService(NotificationManager::class.java)
-                .getNotificationChannel(UPDATES_CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE
-        ) return NotificationAuthorizationStatus.Denied
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            return if (permissionWasRequested()) {
-                NotificationAuthorizationStatus.Denied
-            } else {
-                NotificationAuthorizationStatus.NotDetermined
-            }
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
+        val runtimeRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+        val runtimeGranted = !runtimeRequired || ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                return if (permissionWasRequested()) {
-                    NotificationAuthorizationStatus.Denied
-                } else {
-                    NotificationAuthorizationStatus.NotDetermined
-                }
-            }
-        }
-        return NotificationAuthorizationStatus.Authorized
+        return NotificationPermissionPolicy.status(
+            runtimePermissionRequired = runtimeRequired,
+            runtimePermissionGranted = runtimeGranted,
+            notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled(),
+            channelBlocked = context.getSystemService(NotificationManager::class.java)
+                .getNotificationChannel(UPDATES_CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE,
+            attempted = permissionWasRequested(),
+        )
     }
 
-    fun markPermissionRequested() {
-        preferences.edit().putBoolean(KEY_PERMISSION_REQUESTED, true).apply()
-    }
+    // A single small durable write; fail closed if it cannot be persisted.
+    fun markPermissionRequested(): Boolean =
+        preferences.edit().putBoolean(KEY_PERMISSION_REQUESTED, true).commit()
 
     private fun permissionWasRequested(): Boolean = preferences.getBoolean(
         KEY_PERMISSION_REQUESTED,
