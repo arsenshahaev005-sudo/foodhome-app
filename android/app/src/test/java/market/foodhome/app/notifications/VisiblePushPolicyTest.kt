@@ -19,6 +19,22 @@ class VisiblePushPolicyTest {
         assertEquals("https://foodhome.market/orders/$id", VisiblePushPolicy.parse(data(), now)?.destination)
     }
 
+    @Test fun `seller new order is an explicit bounded event with existing audience guards`() {
+        val input = data() + ("eventType" to "seller.order.new")
+        val push = requireNotNull(VisiblePushPolicy.parse(input, now))
+        assertEquals("https://foodhome.market/orders/$id", push.destination)
+        val state = PushRegistrationState(id, bindingId = bindingId)
+        assertTrue(state.accepts(push, now))
+        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(state.clear().accepts(push, now))
+        assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
+        assertNull(VisiblePushPolicy.parse(input + ("recipientRole" to "seller"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("sound" to "https://attacker.example/sound.wav"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("expiresAt" to "2026-09-09T10:00:00Z"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("route" to
+            """{"protocol":"foodhome.logical-route","version":1,"name":"chat.inbox","params":{},"query":{}}"""), now))
+    }
+
     @Test fun `chat supports only inbox and one existing identifier filter`() {
         for (query in listOf("{}", """{"orderId":"$id"}""", """{"producerId":"$id"}""")) {
             val input = data() + mapOf("eventType" to "chat.message", "route" to

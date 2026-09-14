@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stable named notification sound URI survives resource shrinking and APK updates. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/seller_new_order" />

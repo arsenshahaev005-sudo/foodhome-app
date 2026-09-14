@@ -9,11 +9,15 @@ import android.provider.Settings
 
 /** Native-only settings navigation: no URLs, channel IDs or tokens from JavaScript. */
 internal object NotificationSettingsIntentFactory {
-    fun create(context: Context): Intent? {
+    fun create(context: Context, channelId: String = AndroidNotificationCoordinator.UPDATES_CHANNEL_ID): Intent? {
+        if (channelId !in setOf(
+                AndroidNotificationCoordinator.UPDATES_CHANNEL_ID,
+                AndroidNotificationCoordinator.SELLER_ORDERS_CHANNEL_ID,
+            )) return null
         val candidates = listOf(
             Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                .putExtra(Settings.EXTRA_CHANNEL_ID, AndroidNotificationCoordinator.UPDATES_CHANNEL_ID),
+                .putExtra(Settings.EXTRA_CHANNEL_ID, channelId),
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)

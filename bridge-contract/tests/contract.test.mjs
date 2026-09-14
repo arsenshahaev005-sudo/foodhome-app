@@ -125,7 +125,7 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.6.0");
+  assert.equal(manifest.contractVersion, "1.7.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);
@@ -149,6 +149,20 @@ test("push application v2 stays separate from silent v1 and bounds routing", asy
     { ...fixture, route: "https://attacker.example/" },
     { ...fixture, title: "private" },
     { ...fixture, route: { ...fixture.route, params: { id: "../auth" } } },
+  ]) assert.equal(validators.push(changed), false);
+});
+
+test("seller new-order sound event rejects content role flags and mismatched routes", async () => {
+  const fixture = await loadJson("fixtures/valid/push-seller-new-order.json");
+  assert.equal(validators.push(fixture), true);
+  const chat = await loadJson("fixtures/valid/push-chat.json");
+  for (const changed of [
+    { ...fixture, eventType: "order.created" },
+    { ...fixture, eventType: "buyer.order.new" },
+    { ...fixture, sound: "https://attacker.example/sound.wav" },
+    { ...fixture, recipientRole: "seller" },
+    { ...fixture, route: chat.route },
+    { ...fixture, bindingId: undefined },
   ]) assert.equal(validators.push(changed), false);
 });
 
