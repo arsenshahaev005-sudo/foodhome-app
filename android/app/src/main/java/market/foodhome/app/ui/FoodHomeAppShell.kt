@@ -52,6 +52,7 @@ import market.foodhome.app.navigation.NavigationCoordinator
 import market.foodhome.app.notifications.AndroidNotificationCoordinator
 import market.foodhome.app.notifications.AndroidPushRuntime
 import market.foodhome.app.notifications.NotificationPermissionFlow
+import market.foodhome.app.notifications.NotificationSettingsIntentFactory
 import market.foodhome.app.recovery.CrashLoopBreaker
 import market.foodhome.app.payments.AndroidPaymentReturnRouter
 import market.foodhome.app.payments.PaymentCoordinator
@@ -270,6 +271,16 @@ fun FoodHomeAppShell(
                 showLocationConfirmation = true
             },
             notificationStatus = notificationCoordinator::authorizationStatus,
+            canOpenNotificationSettings = {
+                lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+                    (SystemClock.elapsedRealtime() - lastWebUserActionAt.get()) in 0..2_000
+            },
+            openNotificationSettings = {
+                NotificationSettingsIntentFactory.create(context)?.let { intent ->
+                    context.startActivity(intent)
+                    true
+                } ?: false
+            },
             requestNotificationPermission = { _, completion ->
                 permissionFlow.request(completion)
             },

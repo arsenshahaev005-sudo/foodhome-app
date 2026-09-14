@@ -2,7 +2,13 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The native shells consume immutable bridge artifact `1.5.0`. Server authorization and product behavior remain web-authoritative.
+The native source now targets bridge artifact `1.6.0` (major 1). This is a local
+candidate until reviewed publication with a real source commit and hashes;
+published 1.5.0 provenance remains historical and must not be reused for 1.6.0.
+Server authorization and product behavior remain web-authoritative.
+
+Android notification settings recovery requires a separate food-home integration:
+[Notification recovery 1.6](food-home-notification-recovery-1.6.md).
 
 Android visible push has a separate, currently disabled activation contract:
 [Android visible push v2](android-visible-push-v2.md). The native client does not

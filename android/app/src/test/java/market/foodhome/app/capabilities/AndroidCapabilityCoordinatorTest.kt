@@ -20,6 +20,37 @@ import org.junit.Test
 import java.net.URI
 
 class AndroidCapabilityCoordinatorTest {
+    @Test fun `settings requires gesture rejects arbitrary destinations and handles launch failure`() {
+        var allowed = false
+        var launches = 0
+        var succeeds = true
+        var time = 0L
+        val coordinator = coordinator(
+            manifest = manifest().copy(
+                advertisedCapabilities = setOf("openNotificationSettings"),
+                rateLimits = mapOf("openNotificationSettings" to RateLimitRule(1, 5)),
+            ),
+            canOpenSettings = { allowed },
+            openSettings = { launches++; succeeds },
+            nowMillis = { time },
+        )
+        fun call(payload: JSONObject = JSONObject()): BridgeDispatchResult {
+            var result: BridgeDispatchResult? = null
+            coordinator.dispatch(BridgeRequest("settings", "openNotificationSettings", payload)) { result = it }
+            return requireNotNull(result)
+        }
+        assertEquals("CANCELLED", (call() as BridgeDispatchResult.Failure).code)
+        allowed = true
+        assertEquals("INVALID_PAYLOAD", (call(JSONObject().put("package", "other.app")) as BridgeDispatchResult.Failure).code)
+        assertEquals(0, launches)
+        assertEquals("presented", (call() as BridgeDispatchResult.Success).result.getString("status"))
+        assertEquals("RATE_LIMITED", (call() as BridgeDispatchResult.Failure).code)
+        assertEquals(1, launches)
+        time = 5_000
+        succeeds = false
+        assertEquals("LAUNCH_FAILED", (call() as BridgeDispatchResult.Failure).code)
+    }
+
     @Test
     fun `share is presented only through validated exact origin payload`() {
         var presented: SharePayload? = null
@@ -123,6 +154,8 @@ class AndroidCapabilityCoordinatorTest {
         nowMillis: () -> Long = { 0L },
         manifest: BridgeManifest = manifest(),
         telemetry: TelemetryReporter = TelemetryReporter.disabled(URI("https://foodhome.market")),
+        canOpenSettings: () -> Boolean = { false },
+        openSettings: () -> Boolean = { false },
     ) = AndroidCapabilityCoordinator(
         manifest = manifest,
         trustedOrigin = URI("https://foodhome.market"),
@@ -134,6 +167,8 @@ class AndroidCapabilityCoordinatorTest {
         },
         nowMillis = nowMillis,
         telemetry = telemetry,
+        canOpenNotificationSettings = canOpenSettings,
+        openNotificationSettings = openSettings,
     )
 
     private fun manifest(

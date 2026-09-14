@@ -14,9 +14,11 @@ object NotificationPermissionPolicy {
         channelBlocked: Boolean,
         attempted: Boolean,
     ): NotificationAuthorizationStatus = when {
-        channelBlocked -> NotificationAuthorizationStatus.Denied
         runtimePermissionRequired && !runtimePermissionGranted ->
             if (attempted) NotificationAuthorizationStatus.Denied else NotificationAuthorizationStatus.NotDetermined
+        // Android/OEMs may report channels blocked before the first runtime grant.
+        // Ask the OS once; only then use the channel state to determine delivery.
+        channelBlocked -> NotificationAuthorizationStatus.Denied
         !notificationsEnabled -> NotificationAuthorizationStatus.Denied
         else -> NotificationAuthorizationStatus.Authorized
     }
