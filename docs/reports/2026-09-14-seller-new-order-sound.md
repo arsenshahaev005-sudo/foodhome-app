@@ -1,5 +1,12 @@
 # Seller new-order sound — local implementation, 2026-09-14
 
+Publication follow-up: the owner subsequently authorized commit/push/PR/CI/merge.
+Initial source commit is `d4d022c2575ea9157781d2e92df453e0dbe8f175` on the new
+`codex/seller-new-order-sound` branch based on accepted main `ae87051`.
+See [immutable source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
+The implementation and device-verification record below describes the local
+pre-publication result; current GitHub CI/merge status must be verified separately.
+
 ## Scope
 
 Owner selected `03_rising_excite.wav` and confirmed seller-only new orders.

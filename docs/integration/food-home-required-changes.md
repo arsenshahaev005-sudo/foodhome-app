@@ -2,9 +2,10 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The native source now targets bridge artifact `1.7.0` (major 1). This is a local
-candidate until reviewed publication with a real source commit and hashes;
-published 1.5.0/1.6.0 provenance remains historical and must not be reused for 1.7.0.
+The native source now targets bridge artifact `1.7.0` (major 1). Its real source
+commit and checksums are in the [source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
+Pin the accepted merge before production integration. Historical 1.5.0/1.6.0
+provenance must not be reused for 1.7.0.
 Server authorization and product behavior remain web-authoritative.
 
 Android notification settings recovery requires a separate food-home integration:

@@ -27,7 +27,7 @@ Do not claim independent category status in the current aggregate bridge result.
 The web settings method retains its 1.6.0 behavior; a notification's own Settings
 action targets that notification's category, using distinct PendingIntent identity.
 
-## Contract candidate 1.7.0, major 1
+## Contract 1.7.0, major 1
 
 No new bridge method or binding field. Existing application payload version 2
 admits an additive event type `seller.order.new` with the SAME six exact keys:
@@ -52,8 +52,10 @@ server-side recipient authorization and order access remain authoritative.
 
 Older APKs reject this event, so DO NOT broadcast it to all installations. Preserve
 `order.updated`/`chat.message` for old clients. New APKs still accept both old types.
-Historical 1.5.0/1.6.0 source checksum documents must remain unchanged. This is a
-local 1.7.0 candidate until real publication with a reviewed source commit/hashes.
+Historical 1.5.0/1.6.0 source checksum documents must remain unchanged. The initial
+source commit and 1.7.0 checksums are in the
+[source handoff](../releases/foodhome-bridge-contract-1.7.0.md). Production must pin
+the actual accepted merge and verify its tree, not just an open PR head.
 
 ## Copyable food-home implementation task
 
