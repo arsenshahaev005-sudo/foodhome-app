@@ -36,8 +36,8 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.2.3"
+        versionCode = 6
+        versionName = "0.2.4"
         buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

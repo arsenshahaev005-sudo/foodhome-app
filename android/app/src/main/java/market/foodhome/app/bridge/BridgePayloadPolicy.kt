@@ -19,6 +19,7 @@ class BridgePayloadPolicy(
         }
         return when (method) {
             "managePush" -> PushBindingPolicy.accepts(payload)
+            "openNotificationSettings" -> payload.length() == 0
             "share" -> {
                 if (
                     payload.length() > 3 ||

@@ -1,5 +1,10 @@
 # Android notification permission UX — 0.2.3 / build 5
 
+Historical 0.2.3 behavior below. The 0.2.4 correction and additive 1.6.0 settings
+method are specified in [Notification recovery](food-home-notification-recovery-1.6.md).
+In 0.2.4, an unrequested Android 13+ runtime permission takes precedence over a
+blocked channel; an already-attempted request still does not repeat automatically.
+
 ## Ownership and scope
 
 The owner approved replacing redundant notification enable cards/pre-prompts with

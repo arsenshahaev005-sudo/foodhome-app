@@ -153,9 +153,13 @@ class NotificationPermissionFlowTest {
         assertEquals(NotificationAuthorizationStatus.Authorized, policy(attempted = true))
     }
 
-    @Test fun `channel block takes precedence even when runtime grant exists or was never requested`() {
+    @Test fun `first runtime request remains possible when OEM reports blocked channel`() {
+        assertEquals(NotificationAuthorizationStatus.NotDetermined, policy(granted = false, enabled = false, blocked = true))
+        assertEquals(NotificationAuthorizationStatus.Denied, policy(granted = false, blocked = true, attempted = true))
+    }
+
+    @Test fun `channel block still prevents delivery after runtime grant and before Android 13`() {
         assertEquals(NotificationAuthorizationStatus.Denied, policy(blocked = true))
-        assertEquals(NotificationAuthorizationStatus.Denied, policy(granted = false, blocked = true))
         assertEquals(NotificationAuthorizationStatus.Denied, policy(runtime = false, blocked = true))
     }
 

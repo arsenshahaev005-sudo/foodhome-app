@@ -43,9 +43,9 @@ data class BridgeManifest(
     val rateLimits: Map<String, RateLimitRule> = emptyMap(),
 ) {
     fun forAndroidPush(enabled: Boolean): BridgeManifest = copy(
-        builtInCapabilities = builtInCapabilities + "managePush",
-        advertisedCapabilities = if (enabled) advertisedCapabilities + "managePush" else advertisedCapabilities - "managePush",
-        compiledCapabilities = if (enabled) compiledCapabilities + "managePush" else compiledCapabilities - "managePush",
+        builtInCapabilities = builtInCapabilities + setOf("managePush", "openNotificationSettings"),
+        advertisedCapabilities = (if (enabled) advertisedCapabilities + "managePush" else advertisedCapabilities - "managePush") + "openNotificationSettings",
+        compiledCapabilities = (if (enabled) compiledCapabilities + "managePush" else compiledCapabilities - "managePush") + "openNotificationSettings",
     )
 
     companion object {

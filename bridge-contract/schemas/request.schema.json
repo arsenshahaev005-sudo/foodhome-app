@@ -22,6 +22,7 @@
         "openPayment",
         "ackNativeEvent",
         "clearPaymentRecovery",
+        "openNotificationSettings",
         "getNotificationStatus",
         "requestNotificationPermission"
       ]
@@ -32,6 +33,10 @@
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "method": { "const": "openNotificationSettings" } } },
+      "then": { "properties": { "payload": { "type": "object", "maxProperties": 0, "additionalProperties": false } } }
+    },
     {
       "if": { "properties": { "method": { "const": "managePush" } } },
       "then": {

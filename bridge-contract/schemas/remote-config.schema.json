@@ -52,6 +52,7 @@
         "requestLocation": { "type": "boolean" },
         "openExternal": { "type": "boolean" },
         "openPayment": { "type": "boolean" },
+        "openNotificationSettings": { "type": "boolean" },
         "getNotificationStatus": { "type": "boolean" },
         "requestNotificationPermission": { "type": "boolean" },
         "deepLinks": { "type": "boolean" }

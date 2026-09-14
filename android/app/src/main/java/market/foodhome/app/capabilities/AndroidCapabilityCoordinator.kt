@@ -28,6 +28,8 @@ class AndroidCapabilityCoordinator(
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val telemetry: TelemetryReporter = TelemetryReporter.disabled(trustedOrigin),
     private val managePush: ((JSONObject, (BridgeDispatchResult) -> Unit) -> Unit)? = null,
+    private val openNotificationSettings: () -> Boolean = { false },
+    private val canOpenNotificationSettings: () -> Boolean = { false },
 ) : BridgeCapabilityDispatcher {
     private val sharePolicy = FoodHomeSharePolicy(trustedOrigin)
     private val rateLimiter = CapabilityRateLimiter(nowMillis)
@@ -55,6 +57,19 @@ class AndroidCapabilityCoordinator(
         }
 
         when (request.method) {
+            "openNotificationSettings" -> {
+                if (request.payload.length() != 0) {
+                    reportingCompletion(failure("INVALID_PAYLOAD", "Settings payload must be empty")); return
+                }
+                if (!canOpenNotificationSettings()) {
+                    reportingCompletion(failure("CANCELLED", "Settings require a foreground user action")); return
+                }
+                if (!enforceRateLimit("openNotificationSettings", reportingCompletion)) return
+                val opened = runCatching { openNotificationSettings() }.getOrDefault(false)
+                reportingCompletion(if (opened) BridgeDispatchResult.Success(
+                    JSONObject().put("capability", "openNotificationSettings").put("status", "presented"),
+                ) else failure("LAUNCH_FAILED", "Notification settings could not be opened"))
+            }
             "managePush" -> {
                 if (request.payload.optString("action") == "bind" &&
                     !enforceRateLimit("managePush", reportingCompletion)) return
