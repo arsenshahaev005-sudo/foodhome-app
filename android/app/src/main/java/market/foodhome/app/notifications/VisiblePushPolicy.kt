@@ -36,7 +36,7 @@ object VisiblePushPolicy {
         val params = route.getJSONObject("params")
         val query = route.getJSONObject("query")
         val path = when (eventType) {
-            "order.updated" -> {
+            "order.updated", "seller.order.new" -> {
                 if (route.opt("name") != "order.detail" || params.keySet() != setOf("id") || query.length() != 0) return null
                 val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
                 "/orders/$id"

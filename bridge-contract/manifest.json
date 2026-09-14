@@ -1,6 +1,6 @@
 {
   "protocol": "foodhome.bridge",
-  "contractVersion": "1.6.0",
+  "contractVersion": "1.7.0",
   "bridgeMajor": 1,
   "supportedVersions": [1],
   "globalObjectName": "FoodHomeBridge",

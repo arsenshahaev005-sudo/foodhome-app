@@ -14,24 +14,35 @@ import org.json.JSONObject
 
 internal class PushNotificationPresenter(private val context: Context) {
     fun show(push: VisiblePush, data: Map<String, String>) {
+        val kind = PushNotificationKind.forEvent(push.eventType) ?: return
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
         if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS,
             ) != PackageManager.PERMISSION_GRANTED) return
         AndroidNotificationCoordinator(context).createChannels()
+        if (kind == PushNotificationKind.SellerNewOrder) {
+            // Don't snapshot an OEM's pre-permission state during initial app launch.
+            AndroidNotificationCoordinator(context).createSellerOrdersChannel(
+                AndroidNotificationCoordinator.SELLER_ORDERS_CHANNEL_ID,
+            )
+        }
         val intent = Intent(context, MainActivity::class.java)
             .setAction("market.foodhome.app.PUSH.${push.eventId}")
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra(EXTRA_PAYLOAD, JSONObject(data).toString())
         val pending = PendingIntent.getActivity(context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val body = if (push.eventType == "chat.message") R.string.notification_new_message else R.string.notification_order_updated
-        val publicVersion = NotificationCompat.Builder(context, AndroidNotificationCoordinator.UPDATES_CHANNEL_ID)
+        val body = when (push.eventType) {
+            "seller.order.new" -> R.string.notification_seller_new_order
+            "chat.message" -> R.string.notification_new_message
+            else -> R.string.notification_order_updated
+        }
+        val publicVersion = NotificationCompat.Builder(context, kind.channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notification_generic_update)).build()
-        val notification = NotificationCompat.Builder(context, AndroidNotificationCoordinator.UPDATES_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, kind.channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(body))
@@ -43,9 +54,10 @@ internal class PushNotificationPresenter(private val context: Context) {
             .setOnlyAlertOnce(true)
             .setTimeoutAfter((push.expiresAtMillis - System.currentTimeMillis()).coerceAtLeast(1))
             .apply {
-                NotificationSettingsIntentFactory.create(context)?.let { settingsIntent ->
+                NotificationSettingsIntentFactory.create(context, kind.channelId)?.let { settingsIntent ->
                     val settingsPendingIntent = PendingIntent.getActivity(
-                        context, 1, settingsIntent,
+                        // Intent extras do not participate in PendingIntent identity.
+                        context, if (kind == PushNotificationKind.SellerNewOrder) 2 else 1, settingsIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     )
                     addAction(

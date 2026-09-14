@@ -1,5 +1,10 @@
 # Android visible push integration
 
+The original 1.5.0 activation record below is historical. For the gated Android
+0.2.5/build 7 `seller.order.new` extension and current candidate artifact 1.7.0,
+see [seller-only new-order sound](food-home-seller-order-sound-1.7.md). Existing
+event formats remain valid; never send the new enum to older APKs.
+
 Status: Android implementation completed and locally verified; owner Android
 Firebase configuration imported and resource processing verified. Production
 delivery is BLOCKED on food-home integration, server credentials and real-device

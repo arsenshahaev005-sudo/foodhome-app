@@ -6,6 +6,9 @@
     <string name="location_confirmation_title">Разрешить геолокацию?</string>
     <string name="notification_new_message">У вас новое сообщение. Откройте приложение, чтобы прочитать.</string>
     <string name="notification_order_updated">Статус заказа изменился. Подробности в приложении.</string>
+    <string name="notification_seller_new_order">У вас новый заказ. Откройте приложение, чтобы посмотреть.</string>
+    <string name="notification_channel_seller_orders_name">Новые заказы</string>
+    <string name="notification_channel_seller_orders_description">Новые заказы продавцу с отдельным звуком</string>
     <string name="notification_generic_update">Есть новые события. Откройте приложение.</string>
     <string name="notification_settings_action">Настройки</string>
     <string name="permission_cancel">Не сейчас</string>
