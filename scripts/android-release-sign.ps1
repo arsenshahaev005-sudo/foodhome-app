@@ -53,7 +53,7 @@ try {
         if (!(Test-Path -LiteralPath $keystore) -or !(Test-Path -LiteralPath $passwordFile)) { throw 'Existing owner key/password not found.' }
         if (!$UnsignedApk -or !$SignedApk -or !$BuildTools) { throw 'Sign requires BuildTools, UnsignedApk and SignedApk.' }
         if (Test-Path -LiteralPath $SignedApk) { throw 'Refusing to overwrite an existing signed artifact.' }
-        $secure = Get-Content -LiteralPath $passwordFile -Raw | ConvertTo-SecureString
+        $secure = (Get-Content -LiteralPath $passwordFile -Raw).Trim() | ConvertTo-SecureString
         $env:FOODHOME_SIGNING_PASSWORD = [Net.NetworkCredential]::new('', $secure).Password
         $aapt = Join-Path $BuildTools 'aapt.exe'
         $badging = & $aapt dump badging $UnsignedApk
