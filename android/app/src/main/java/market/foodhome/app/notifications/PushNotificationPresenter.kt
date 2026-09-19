@@ -38,12 +38,10 @@ internal class PushNotificationPresenter(private val context: Context) {
             "chat.message" -> R.string.notification_new_message
             else -> R.string.notification_order_updated
         }
-        val publicVersion = NotificationCompat.Builder(context, kind.channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+        val publicVersion = NotificationBranding.builder(context, kind.channelId)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notification_generic_update)).build()
-        val notification = NotificationCompat.Builder(context, kind.channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+        val notification = NotificationBranding.builder(context, kind.channelId)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(body))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
