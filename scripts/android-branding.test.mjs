@@ -53,3 +53,20 @@ test('launch uses PWA colors and local assets without timers or a second WebView
   assert.match(states, /AppShellState.Loading -> FoodHomeLaunchSurface\(\)/);
   assert.match(states, /AppShellState.Offline -> RecoveryPanel/);
 });
+
+test('notifications use the brand alpha mask and pinned local logo in both privacy variants', () => {
+  const icon = read(res + 'drawable/ic_notification.xml');
+  for (const part of ['heart', 'house', 'steam', 'dish']) assert(icon.includes(`android:name="${part}"`));
+  const colors = [...icon.matchAll(/android:(?:fillColor|strokeColor)="([^"]+)"/g)].map(m => m[1]);
+  assert(colors.length > 0 && colors.every(c => ['#FFFFFFFF', '#00000000'].includes(c)));
+  const branding = read('android/app/src/main/java/market/foodhome/app/notifications/NotificationBranding.kt');
+  assert.match(branding, /R\.drawable\.pwa_icon_maskable/);
+  assert.match(branding, /inSampleSize = 4/);
+  assert.match(branding, /setSmallIcon\(R\.drawable\.ic_notification\)/);
+  assert.match(branding, /setLargeIcon\(logo\)/);
+  assert(!/https?:|URL\(|setColorized|setSound|IMPORTANCE_/.test(branding));
+  const presenter = read('android/app/src/main/java/market/foodhome/app/notifications/PushNotificationPresenter.kt');
+  assert.equal((presenter.match(/NotificationBranding\.builder\(context, kind.channelId\)/g) ?? []).length, 2);
+  assert.match(presenter, /setVisibility\(NotificationCompat.VISIBILITY_PRIVATE\)/);
+  assert.match(presenter, /setPublicVersion\(publicVersion\)/);
+});

@@ -56,5 +56,27 @@ clear sessions, bypass TLS, or extend a push-test window for branding verificati
 
 Android APK only. No `food-home`, iOS, bridge, backend or server changes are required.
 PWA and APK remain distinct installations; identical artwork does not merge their
-launcher entries. The monochrome system-notification icon is intentionally separate
-from the colored launcher icon and is not changed by this work.
+launcher entries.
+
+## Notification branding (Android 0.2.6 / build 8)
+
+- `ic_notification.xml` is a transparent, white-only small-size adaptation of the
+  PWA house/heart/steaming-dish mark, not the previous generic bell. Android may tint
+  the small icon; do not use the opaque colored launcher bitmap as its alpha mask.
+- `NotificationBranding` decodes the existing pinned maskable PWA logo to 128px
+  for the large icon. No remote images, new logo source or private image content.
+- The normal and privacy-redacted notification both use the same branding.
+  The generic redacted copy, private visibility, routes, channels, sounds,
+  permission checks and user preferences are unchanged.
+- The OS/OEM controls the final layout and whether a large icon appears in every
+  collapsed/heads-up form; this is not a custom notification layout.
+- Static checks run in the existing branding test; `NotificationBrandingTest`
+  builds notifications without posting them and validates the vector/bitmap on Android.
+- Bridge remains 1.7.0, but food-home currently allowlists the exact
+  `(bridge 1.7.0, app 0.2.5, build 7)` tuple for seller-order sound. Before rollout,
+  publish/review this native source and complete
+  [the 0.2.6 compatibility task](../integration/food-home-notification-branding-0.2.6.md).
+  Do not reuse the old version number to bypass that gate.
+
+References: [notification anatomy](https://developer.android.com/design/ui/mobile/guides/home-screen/notifications)
+and [NotificationCompat notification construction](https://developer.android.com/develop/ui/compose/notifications/create-notification).
