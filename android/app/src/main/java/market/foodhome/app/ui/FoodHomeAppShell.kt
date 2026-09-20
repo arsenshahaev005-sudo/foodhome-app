@@ -35,10 +35,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import market.foodhome.app.R
 import market.foodhome.app.bridge.BridgeManifest
 import market.foodhome.app.bridge.NativeEventQueue
+import market.foodhome.app.bridge.NotificationLifecycleSignals
 import market.foodhome.app.capabilities.AndroidCapabilityCoordinator
 import market.foodhome.app.config.AppEnvironment
 import market.foodhome.app.location.AndroidLocationProvider
@@ -101,6 +103,18 @@ fun FoodHomeAppShell(
     var activeCaptureFile by remember { mutableStateOf<File?>(null) }
     var activeCaptureUri by remember { mutableStateOf<Uri?>(null) }
     var paymentEventRevision by remember { mutableIntStateOf(0) }
+    var notificationEventRevision by remember { mutableIntStateOf(0) }
+    val notificationSignals = remember { NotificationLifecycleSignals() }
+    DisposableEffect(lifecycle, notificationSignals) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationSignals.record(NotificationLifecycleSignals.Kind.Resumed)
+                notificationEventRevision += 1
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     val lastWebUserActionAt = remember { AtomicLong(Long.MIN_VALUE) }
     val nativeEventQueue = remember(manifest, environment.trustedOrigin, paymentCoordinator) {
         NativeEventQueue(manifest, environment.trustedOrigin, paymentCoordinator)
@@ -213,6 +227,10 @@ fun FoodHomeAppShell(
         ActivityResultContracts.RequestPermission(),
     ) {
         notificationFlow.get()?.onResult()
+        // The original WebView request may have timed out or navigated away.
+        // Signal a fresh read, never consent or an assumed successful binding.
+        notificationSignals.record(NotificationLifecycleSignals.Kind.PermissionChanged)
+        notificationEventRevision += 1
     }
     val permissionFlow = remember(notificationCoordinator, lifecycle, notificationPermissionLauncher) {
         NotificationPermissionFlow(
@@ -351,6 +369,8 @@ fun FoodHomeAppShell(
                     capabilityDispatcher = capabilityDispatcher,
                     nativeEventQueue = nativeEventQueue,
                     nativeEventRevision = paymentEventRevision,
+                    notificationSignals = notificationSignals,
+                    notificationEventRevision = notificationEventRevision,
                     telemetry = telemetry,
                     onPaymentUserAction = {
                         lastWebUserActionAt.set(SystemClock.elapsedRealtime())

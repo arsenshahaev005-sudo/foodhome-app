@@ -11,6 +11,7 @@ on:
       - "scripts/generate-android-branding.mjs"
       - "scripts/android-branding.test.mjs"
       - "scripts/android-notification-sound.test.mjs"
+      - "scripts/android-notification-lifecycle.test.mjs"
       - "bridge-contract/manifest.json"
       - "scripts/verify-phase-5-hardening.mjs"
       - ".github/workflows/android.yml"
@@ -51,6 +52,8 @@ jobs:
           assembleDebugAndroidTest
           --no-daemon
           --stacktrace
+      - name: Verify emitted notification lifecycle JavaScript
+        run: node --test scripts/android-notification-lifecycle.test.mjs
       - name: Enable KVM for Android UI smoke tests
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

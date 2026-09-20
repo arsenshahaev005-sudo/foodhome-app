@@ -36,6 +36,7 @@ import market.foodhome.app.bridge.BridgeDispatchResult
 import market.foodhome.app.bridge.BridgeManifest
 import market.foodhome.app.bridge.NativeModeBootstrap
 import market.foodhome.app.bridge.NativeEventQueue
+import market.foodhome.app.bridge.NotificationLifecycleSignals
 import market.foodhome.app.bridge.BridgeOriginPolicy
 import market.foodhome.app.bridge.BridgeRequestResult
 import market.foodhome.app.bridge.BridgeRequestValidator
@@ -54,6 +55,9 @@ import market.foodhome.app.ui.AppShellState
 import market.foodhome.app.telemetry.TelemetryEventName
 import market.foodhome.app.telemetry.TelemetryReporter
 import java.time.Instant
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -74,10 +78,33 @@ fun FoodHomeWebView(
     onPaymentUserAction: () -> Unit,
     onFileRequest: (ValueCallback<Array<Uri>>, MediaRequest) -> Boolean,
     modifier: Modifier = Modifier,
+    notificationSignals: NotificationLifecycleSignals? = null,
+    notificationEventRevision: Int = 0,
 ) {
     var ownedWebView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
     var trustedDocumentReady by remember { mutableStateOf(false) }
+    var documentGeneration by remember { mutableStateOf(0) }
+    var bridgeActivityRevision by remember { mutableStateOf(0) }
+
+    LaunchedEffect(notificationEventRevision, documentGeneration, bridgeActivityRevision, trustedDocumentReady, ownedWebView) {
+        val view = ownedWebView ?: return@LaunchedEffect
+        if (!trustedDocumentReady) return@LaunchedEffect
+        val script = notificationSignals?.dispatchScript(
+            environment.trustedOrigin, manifest.nativeEventName, manifest.globalObjectName,
+        ) ?: return@LaunchedEffect
+        // Bounded readiness retries. Hints remain in memory for the next resume/document;
+        // successful JS execution NEVER removes/acknowledges a payment event.
+        repeat(12) {
+            val dispatched = suspendCancellableCoroutine<Boolean> { continuation ->
+                view.evaluateJavascript(script) { result ->
+                    if (continuation.isActive) continuation.resume(result == "true")
+                }
+            }
+            if (dispatched) return@LaunchedEffect
+            delay(1_000)
+        }
+    }
 
     LaunchedEffect(nativeEventRevision, trustedDocumentReady, ownedWebView) {
         val currentWebView = ownedWebView
@@ -161,6 +188,7 @@ fun FoodHomeWebView(
                         manifest = manifest,
                         dispatcher = capabilityDispatcher,
                         telemetry = telemetry,
+                        onTrustedBridgeRequest = { bridgeActivityRevision += 1 },
                     )
                 }
 
@@ -207,6 +235,7 @@ fun FoodHomeWebView(
                     }
 
                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        documentGeneration += 1
                         trustedDocumentReady = false
                         mainFrameFailed = false
                         onStateChanged(AppShellState.Loading)
@@ -241,7 +270,10 @@ fun FoodHomeWebView(
                                             finishedDocument,
                                         )
                                     }
-                                    trustedDocumentReady = true
+                                    // A completion from the previous document cannot ready this one.
+                                    if (finishedDocument == documentAttachment && !mainFrameFailed) {
+                                        trustedDocumentReady = true
+                                    }
                                 }
                             } else {
                                 val attachment = navigationAttachment
@@ -375,6 +407,7 @@ private fun registerBridge(
     manifest: BridgeManifest,
     dispatcher: BridgeCapabilityDispatcher,
     telemetry: TelemetryReporter,
+    onTrustedBridgeRequest: () -> Unit,
 ) {
     val originPolicy = BridgeOriginPolicy(environment.trustedOrigin)
     val validator = BridgeRequestValidator(manifest, environment.trustedOrigin)
@@ -384,6 +417,7 @@ private fun registerBridge(
             val data = if (message.type == WebMessageCompat.TYPE_STRING) message.data else null
             when (val result = data?.let(validator::validate)) {
                 is BridgeRequestResult.Accepted -> {
+                    onTrustedBridgeRequest()
                     val reply = TerminalReply()
                     dispatcher.dispatch(result.request) { dispatchResult ->
                         reply.complete {

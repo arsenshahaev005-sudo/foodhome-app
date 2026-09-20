@@ -36,8 +36,8 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.6"
+        versionCode = 9
+        versionName = "0.2.7"
         buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -71,6 +71,8 @@ android {
         unitTests.all {
             it.useJUnit()
             it.systemProperty("foodhome.contractRoot", rootProject.file("../bridge-contract").absolutePath)
+            it.systemProperty("foodhome.lifecycleScriptOutput", layout.buildDirectory.file("reports/lifecycle-dispatch.js").get().asFile.absolutePath)
+            it.outputs.file(layout.buildDirectory.file("reports/lifecycle-dispatch.js"))
         }
     }
 
