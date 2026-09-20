@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
+import android.webkit.MimeTypeMap
 import android.webkit.ValueCallback
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -378,7 +379,9 @@ fun FoodHomeAppShell(
                     onFileRequest = { callback, mediaRequest: MediaRequest ->
                         completeMedia(null)
                         captureStore.cleanupStale()
-                        val resolved = MediaRequestPolicy.resolve(mediaRequest)
+                        val resolved = MediaRequestPolicy.resolve(mediaRequest) {
+                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(it)
+                        }
                         pendingMedia = PendingMediaRequest(callback, resolved)
                         if (resolved.offerCamera) showMediaSourceChoice = true
                         else launchPicker(resolved)
