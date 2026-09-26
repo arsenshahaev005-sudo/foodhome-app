@@ -12,6 +12,7 @@ on:
       - "scripts/android-branding.test.mjs"
       - "scripts/android-notification-sound.test.mjs"
       - "scripts/android-notification-lifecycle.test.mjs"
+      - "scripts/verify-android-updater-distribution.mjs"
       - "bridge-contract/manifest.json"
       - "scripts/verify-phase-5-hardening.mjs"
       - ".github/workflows/android.yml"
@@ -54,6 +55,8 @@ jobs:
           --stacktrace
       - name: Verify emitted notification lifecycle JavaScript
         run: node --test scripts/android-notification-lifecycle.test.mjs
+      - name: Verify direct APK update distribution
+        run: node scripts/verify-android-updater-distribution.mjs direct
       - name: Enable KVM for Android UI smoke tests
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -68,3 +71,10 @@ jobs:
           working-directory: android
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace
+      - name: Verify store builds remove the APK updater permission
+        working-directory: android
+        run: >-
+          bash ./gradlew processReleaseMainManifest generateReleaseBuildConfig
+          -PFOODHOME_DIRECT_APK_UPDATES_ENABLED=false --no-daemon --stacktrace
+      - name: Check store update distribution
+        run: node scripts/verify-android-updater-distribution.mjs store

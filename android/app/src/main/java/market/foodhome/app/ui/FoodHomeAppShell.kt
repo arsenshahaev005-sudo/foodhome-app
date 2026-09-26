@@ -61,6 +61,7 @@ import market.foodhome.app.payments.AndroidPaymentReturnRouter
 import market.foodhome.app.payments.PaymentCoordinator
 import market.foodhome.app.telemetry.TelemetryReporter
 import market.foodhome.app.web.FoodHomeWebView
+import market.foodhome.app.updates.ApkUpdatePrompt
 import java.io.File
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -334,6 +335,7 @@ fun FoodHomeAppShell(
     }
 
     MaterialTheme {
+        ApkUpdatePrompt(contentReady = state == AppShellState.Content)
         Box(
             modifier = Modifier
                 .fillMaxSize()
