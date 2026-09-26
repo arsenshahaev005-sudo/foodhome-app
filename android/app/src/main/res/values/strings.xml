@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="apk_update_title">Обновление Food&amp;Home</string>
+    <string name="apk_update_offer">Доступна версия %1$s. Скачать обновление? Аккаунт и данные сохранятся.</string>
+    <string name="apk_update_downloading">Загрузка: %1$d%%</string>
+    <string name="apk_update_ready">Обновление проверено. Нажмите «Установить» и подтвердите обновление в окне Android.</string>
+    <string name="apk_update_permission">Для обновления разрешите Food&amp;Home установку приложений в настройках Android. После возвращения нажмите «Установить».</string>
+    <string name="apk_update_verifying">Проверяем обновление…</string>
+    <string name="apk_update_error">Не удалось загрузить или проверить обновление. Попробуйте позже. Текущее приложение продолжит работать.</string>
+    <string name="apk_update_later">Позже</string>
+    <string name="apk_update_cancel">Отменить</string>
+    <string name="apk_update_retry">Повторить</string>
+    <string name="apk_update_download">Обновить</string>
+    <string name="apk_update_install">Установить</string>
+    <string name="apk_update_open_settings">Открыть настройки</string>
     <string name="launch_loading">Загрузка Food&amp;Home</string>
     <string name="app_name">Food&amp;Home</string>
     <string name="share_chooser_title">Поделиться Food&amp;Home</string>

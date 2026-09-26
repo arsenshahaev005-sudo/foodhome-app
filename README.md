@@ -50,6 +50,16 @@ matching website/server integration are required before activation. Follow the
 See the [local verification report](docs/reports/2026-09-09-android-push.md) for
 completed checks and remaining delivery gates.
 
+## Android APK updates
+
+Direct-download release builds can offer newer stable GitHub releases inside the
+app. Download is user-initiated, checked against the asset hash and owner signing
+identity, then handed to Android for installation confirmation. Users on older
+versions need one manual upgrade to 0.2.9. See the
+[update and publication runbook](docs/runbooks/android-in-app-updates.md).
+For Google Play builds disable this mechanism and its install permission using
+`-PFOODHOME_DIRECT_APK_UPDATES_ENABLED=false`.
+
 ## Security and source use
 
 The production container trusts only the exact HTTPS origin `https://foodhome.market`. Native bridge capabilities are restricted to that origin and fail closed when validation or platform support is unavailable.

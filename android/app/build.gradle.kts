@@ -27,6 +27,10 @@ if (nativePushEnabled) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+// Direct-download distribution only. Play builds must explicitly disable this.
+val directApkUpdatesEnabled = providers.gradleProperty("FOODHOME_DIRECT_APK_UPDATES_ENABLED")
+    .map(String::toBooleanStrict).orElse(true).get()
+
 android {
     namespace = "market.foodhome.app"
     compileSdk = 37
@@ -36,17 +40,19 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.2.8"
+        versionCode = 11
+        versionName = "0.2.9"
         buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
+            buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", "false")
             buildConfigField("String", "DEBUG_BASE_URL", "\"$debugBaseUrl\"")
         }
         release {
+            buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", directApkUpdatesEnabled.toString())
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("String", "DEBUG_BASE_URL", "\"\"")
@@ -60,6 +66,10 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+    }
+
+    if (directApkUpdatesEnabled) {
+        sourceSets.getByName("release").manifest.srcFile("src/directUpdates/AndroidManifest.xml")
     }
 
     compileOptions {

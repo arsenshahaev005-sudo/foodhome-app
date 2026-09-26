@@ -28,6 +28,10 @@ Do not automatically uninstall, clear data or migrate identities.
 
 ## Release gates
 
+Direct-download builds default to the in-app updater. Follow
+`docs/runbooks/android-in-app-updates.md` for stable release naming, asset digest,
+upgrade QA and disabling the updater/install permission in future Play builds.
+
 Publish source through a reviewed PR and passing CI before marking an artifact
 as a public release. Record source commit, package, version/build, bridge,
 Firebase project (not credentials), APK SHA-256, certificate SHA-256 and actual
