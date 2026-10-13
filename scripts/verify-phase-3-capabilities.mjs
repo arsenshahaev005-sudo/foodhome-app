@@ -68,7 +68,13 @@ const androidLocationPath =
   "android/app/src/main/java/market/foodhome/app/location/AndroidLocationProvider.kt";
 const androidLocation = read(androidLocationPath);
 requireText(androidLocation, "requestCurrentLocation", androidLocationPath);
-requireText(androidLocation, '"TIMEOUT"', androidLocationPath);
+requireText(androidLocation, "LocationManagerCompat.getCurrentLocation", androidLocationPath);
+requireText(androidLocation, "CurrentLocationRequest", androidLocationPath);
+const currentLocationRequestPath =
+  "android/app/src/main/java/market/foodhome/app/location/CurrentLocationRequest.kt";
+const currentLocationRequest = read(currentLocationRequestPath);
+requireText(currentLocationRequest, '"TIMEOUT"', currentLocationRequestPath);
+requireText(currentLocationRequest, "cleanup()", currentLocationRequestPath);
 forbidText(androidLocation, "requestLocationUpdates", androidLocationPath);
 
 const androidPushPath =

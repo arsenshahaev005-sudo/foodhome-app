@@ -284,6 +284,7 @@ fun FoodHomeAppShell(
                 }.isSuccess
             },
             requestLocation = { purpose, completion ->
+                locationProvider.cancel()
                 pendingLocation?.completion?.invoke(
                     LocationRequestResult.Failed("CANCELLED", "Location request was replaced"),
                 )

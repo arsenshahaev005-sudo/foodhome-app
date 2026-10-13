@@ -5,33 +5,17 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Build
-import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
-
-sealed interface LocationRequestResult {
-    data class Granted(
-        val latitude: Double,
-        val longitude: Double,
-        val accuracyMeters: Double,
-        val precise: Boolean,
-    ) : LocationRequestResult
-
-    data class Failed(
-        val code: String,
-        val message: String,
-        val retryable: Boolean = false,
-    ) : LocationRequestResult
-}
+import androidx.core.location.LocationManagerCompat
 
 class AndroidLocationProvider(
     private val context: Context,
-    private val timeoutMillis: Long = 10_000,
+    // Leave time for the native response inside the bridge's 10-second request budget.
+    private val timeoutMillis: Long = 8_000,
 ) {
     private val locationManager = context.getSystemService(LocationManager::class.java)
     private val handler = Handler(Looper.getMainLooper())
@@ -58,74 +42,51 @@ class AndroidLocationProvider(
             return
         }
 
-        val provider = listOfNotNull(
-            LocationManager.GPS_PROVIDER.takeIf { fineGranted },
+        val providers = listOfNotNull(
             LocationManager.NETWORK_PROVIDER,
-        ).firstOrNull { runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false) }
-        if (provider == null) {
+            LocationManager.GPS_PROVIDER.takeIf { fineGranted },
+        ).filter { runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false) }
+        if (providers.isEmpty()) {
             completion(LocationRequestResult.Failed("CAPABILITY_UNAVAILABLE", "Location services are disabled"))
             return
         }
 
-        var completed = false
-        fun finish(result: LocationRequestResult) {
-            if (completed) return
-            completed = true
-            cancelActive?.invoke()
-            cancelActive = null
-            completion(result)
-        }
-
-        val timeout = Runnable {
-            finish(LocationRequestResult.Failed("TIMEOUT", "Location request timed out", retryable = true))
-        }
-        handler.postDelayed(timeout, timeoutMillis)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val signal = CancellationSignal()
-            cancelActive = {
-                handler.removeCallbacks(timeout)
-                signal.cancel()
-            }
-            locationManager.getCurrentLocation(
-                provider,
-                signal,
-                ContextCompat.getMainExecutor(context),
-            ) { location ->
-                if (location == null) {
-                    finish(LocationRequestResult.Failed("CAPABILITY_UNAVAILABLE", "Location is unavailable", retryable = true))
-                } else {
-                    finish(location.asResult(fineGranted))
+        val request = CurrentLocationRequest(
+            providers = providers,
+            timeoutMillis = timeoutMillis,
+            scheduleTimeout = { delay, action ->
+                val timeout = Runnable(action)
+                handler.postDelayed(timeout, delay)
+                val cancel: () -> Unit = { handler.removeCallbacks(timeout) }
+                cancel
+            },
+            queryProvider = { provider, receive ->
+                val signal = CancellationSignal()
+                try {
+                    // Compat also uses a recent fix on Android 8-10 instead of waiting for a new GPS fix.
+                    LocationManagerCompat.getCurrentLocation(
+                        locationManager, provider, signal, ContextCompat.getMainExecutor(context),
+                    ) { location -> receive(location?.asResult(fineGranted)) }
+                } catch (error: Exception) {
+                    signal.cancel()
+                    throw error
                 }
-            }
-        } else {
-            val listener = object : LocationListener {
-                override fun onLocationChanged(location: Location) {
-                    finish(location.asResult(fineGranted))
-                }
-
-                @Deprecated("Deprecated in Android")
-                override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
-
-                override fun onProviderEnabled(provider: String) = Unit
-
-                override fun onProviderDisabled(provider: String) {
-                    finish(LocationRequestResult.Failed("CAPABILITY_UNAVAILABLE", "Location services are disabled"))
-                }
-            }
-            cancelActive = {
-                handler.removeCallbacks(timeout)
-                locationManager.removeUpdates(listener)
-            }
-            @Suppress("DEPRECATION")
-            locationManager.requestSingleUpdate(provider, listener, Looper.getMainLooper())
-        }
+                val cancel: () -> Unit = { signal.cancel() }
+                cancel
+            },
+            completion = { result ->
+                cancelActive = null
+                completion(result)
+            },
+        )
+        cancelActive = request::cancel
+        request.start()
     }
 
     private fun Location.asResult(precise: Boolean) = LocationRequestResult.Granted(
-        latitude = latitude.coerceIn(-90.0, 90.0),
-        longitude = longitude.coerceIn(-180.0, 180.0),
-        accuracyMeters = accuracy.toDouble().coerceIn(0.0, 100_000.0),
+        latitude = latitude,
+        longitude = longitude,
+        accuracyMeters = if (hasAccuracy()) accuracy.toDouble() else Double.NaN,
         precise = precise,
     )
 }
