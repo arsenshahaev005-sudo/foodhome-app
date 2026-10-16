@@ -19,6 +19,23 @@ class VisiblePushPolicyTest {
         assertEquals("https://foodhome.market/orders/$id", VisiblePushPolicy.parse(data(), now)?.destination)
     }
 
+    @Test fun `moderation v3 opens only the seller product and preserves generation expiry and dedupe`() {
+        val input = data() + mapOf("version" to "3", "eventType" to "seller.product.moderated", "route" to
+            """{"protocol":"foodhome.logical-route","version":1,"name":"seller.product","params":{"id":"$id"},"query":{}}""")
+        val push = requireNotNull(VisiblePushPolicy.parse(input, now))
+        assertEquals("https://foodhome.market/seller?view=PRODUCTS&productId=$id", push.destination)
+        assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(push.eventType))
+        val state = PushRegistrationState(id, bindingId = bindingId)
+        assertTrue(state.accepts(push, now))
+        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(state.clear().accepts(push, now))
+        assertNull(VisiblePushPolicy.parse(input + ("version" to "2"), now))
+        assertNull(VisiblePushPolicy.parse(data() + ("version" to "3"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("expiresAt" to "2026-09-09T10:00:00Z"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("body" to "private"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace(id, "../auth")), now))
+    }
+
     @Test fun `seller new order is an explicit bounded event with existing audience guards`() {
         val input = data() + ("eventType" to "seller.order.new")
         val push = requireNotNull(VisiblePushPolicy.parse(input, now))

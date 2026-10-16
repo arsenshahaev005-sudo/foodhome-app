@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="notification_product_moderated">Обновлён результат модерации товара</string>
     <string name="apk_update_title">Обновление Food&amp;Home</string>
     <string name="apk_update_offer">Доступна версия %1$s. Скачать обновление? Аккаунт и данные сохранятся.</string>
     <string name="apk_update_downloading">Загрузка: %1$d%%</string>
