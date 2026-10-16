@@ -25,6 +25,7 @@ const manifest = await loadJson("manifest.json");
 const packageMetadata = await loadJson("package.json");
 const packageLock = await loadJson("package-lock.json");
 const schemas = {
+  moderation: await loadJson("schemas/push-v3.schema.json"),
   push: await loadJson("schemas/push.schema.json"),
   request: await loadJson("schemas/request.schema.json"),
   response: await loadJson("schemas/response.schema.json"),
@@ -40,6 +41,7 @@ const validators = Object.fromEntries(
 );
 
 function schemaNameForFixture(filename) {
+  if (filename.startsWith("push-moderation")) return "moderation";
   if (filename.startsWith("native-event")) return "native-event";
   if (filename.startsWith("remote-config")) return "remote-config";
   return path.basename(filename, ".json").split("-")[0];
@@ -125,7 +127,7 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.7.0");
+  assert.equal(manifest.contractVersion, "1.8.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);
@@ -150,6 +152,19 @@ test("push application v2 stays separate from silent v1 and bounds routing", asy
     { ...fixture, title: "private" },
     { ...fixture, route: { ...fixture.route, params: { id: "../auth" } } },
   ]) assert.equal(validators.push(changed), false);
+});
+
+test("moderation v3 has an exact service route without content or arbitrary destinations", async () => {
+  const fixture = await loadJson("fixtures/valid/push-moderation.json");
+  assert.equal(validators.moderation(fixture), true);
+  assert.equal(validators.push(fixture), false);
+  for (const changed of [
+    { ...fixture, version: 2 }, { ...fixture, eventType: "seller.order.new" },
+    { ...fixture, title: "private" }, { ...fixture, body: "private" },
+    { ...fixture, route: { ...fixture.route, name: "order.detail" } },
+    { ...fixture, route: { ...fixture.route, query: { role: "support" } } },
+    { ...fixture, route: { ...fixture.route, params: { id: "../auth" } } },
+  ]) assert.equal(validators.moderation(changed), false);
 });
 
 test("seller new-order sound event rejects content role flags and mismatched routes", async () => {

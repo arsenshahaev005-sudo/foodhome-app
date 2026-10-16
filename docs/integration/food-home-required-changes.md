@@ -2,10 +2,11 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The native source now targets bridge artifact `1.7.0` (major 1). Its real source
-commit and checksums are in the [source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
-Pin the accepted merge before production integration. Historical 1.5.0/1.6.0
-provenance must not be reused for 1.7.0.
+The current local candidate targets bridge artifact `1.8.0` (major1). The last
+published artifact remains `1.7.0`; its source and checksums are in the
+[published source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
+Publish and pin the accepted new source before production activation. Historical
+provenance must not be reused for the1.8.0 candidate.
 Server authorization and product behavior remain web-authoritative.
 
 Android notification settings recovery requires a separate food-home integration:
@@ -36,3 +37,10 @@ claim compatibility with the old silent delivery payload for visible alerts.
 | FH-OBS-001 | Accept only the documented, redacted telemetry allowlist. |
 | FH-STORE-001 | Maintain store metadata, review access, and account-deletion evidence outside source control. |
 | FH-SIGNAL-001 | Treat native signals and deep links as routing hints, never authorization. |
+# Seller moderation candidate
+
+The coordinated candidate artifact `1.8.0` adds a separate version-3 push schema
+for `seller.product.moderated`, supported by Android0.2.11/build13. Existing v2
+chat/order payloads and the seller new-order sound keep their prior contracts.
+The backend service event stays default-off until this native source and APK are
+published and the deployment/device gates are completed. No iOS push activation.

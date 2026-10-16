@@ -24,7 +24,8 @@ object VisiblePushPolicy {
     fun parse(data: Map<String, String>, nowMillis: Long): VisiblePush? = runCatching {
         if (data.keys != keys || data.entries.sumOf { it.key.toByteArray(Charsets.UTF_8).size + it.value.toByteArray(Charsets.UTF_8).size } > 2_048) return null
         // Never promote the pre-existing silent v1 contract into a visible alert.
-        if (data["version"] != "2") return null
+        val version = data["version"]
+        if (version !in setOf("2", "3")) return null
         val eventId = data.getValue("eventId").takeIf(uuid::matches) ?: return null
         val bindingId = data.getValue("bindingId").takeIf(binding::matches) ?: return null
         val expiry = Instant.parse(data.getValue("expiresAt")).toEpochMilli()
@@ -37,11 +38,13 @@ object VisiblePushPolicy {
         val query = route.getJSONObject("query")
         val path = when (eventType) {
             "order.updated", "seller.order.new" -> {
+                if (version != "2") return null
                 if (route.opt("name") != "order.detail" || params.keySet() != setOf("id") || query.length() != 0) return null
                 val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
                 "/orders/$id"
             }
             "chat.message" -> {
+                if (version != "2") return null
                 if (route.opt("name") != "chat.inbox" || params.length() != 0 || query.length() > 1) return null
                 if (query.length() == 0) "/chat" else {
                     val name = query.keys().next()
@@ -49,6 +52,11 @@ object VisiblePushPolicy {
                     val id = (query.opt(name) as? String)?.takeIf(uuid::matches) ?: return null
                     "/chat?$name=$id"
                 }
+            }
+            "seller.product.moderated" -> {
+                if (version != "3" || route.opt("name") != "seller.product" || params.keySet() != setOf("id") || query.length() != 0) return null
+                val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
+                "/seller?view=PRODUCTS&productId=$id"
             }
             else -> return null
         }
