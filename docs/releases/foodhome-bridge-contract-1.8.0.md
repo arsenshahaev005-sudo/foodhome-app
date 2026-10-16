@@ -5,6 +5,12 @@ Canonical source is bridge-contract/ in this foodhome-app branch. Resolve the
 reviewed commit/tree and verify all blob checksums before production integration.
 The prior1.7.0 handoff and frontend artifact remain unchanged.
 
+Initial candidate source commit:2ac39128d1105ff88d3c418ff3ffc41bc55c7286.
+Contract tree:d2f6949d1e28348437a213ae7e26e50026b7fa76.
+The70 exact Git blobs are listed in foodhome-bridge-contract-1.8.0.sha256;
+manifest SHA256:9a74720828a654a7c27c7d73e7611c65ff55975207898df9b54c573a1a10f72a.
+These identify a candidate, not an accepted merge or public APK release.
+
 Android0.2.11/build13 adds the dedicated seller.product.moderated application
 payload version3. Existing chat/order application version2 is unchanged. The
 bridge major and method set remain1; the additive contract artifact is1.8.0.
