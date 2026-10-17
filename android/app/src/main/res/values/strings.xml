@@ -32,4 +32,5 @@
     <string name="media_source_camera">Сделать фото</string>
     <string name="notification_channel_updates_name">Обновления Food&amp;Home</string>
     <string name="notification_channel_updates_description">Сигналы об актуальных событиях без личных данных</string>
+    <string name="notification_order_photo_ready">Продавец прислал фото заказа — проверьте его</string>
 </resources>

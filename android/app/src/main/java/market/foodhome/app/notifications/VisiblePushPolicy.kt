@@ -25,7 +25,7 @@ object VisiblePushPolicy {
         if (data.keys != keys || data.entries.sumOf { it.key.toByteArray(Charsets.UTF_8).size + it.value.toByteArray(Charsets.UTF_8).size } > 2_048) return null
         // Never promote the pre-existing silent v1 contract into a visible alert.
         val version = data["version"]
-        if (version !in setOf("2", "3")) return null
+        if (version !in setOf("2", "3", "4")) return null
         val eventId = data.getValue("eventId").takeIf(uuid::matches) ?: return null
         val bindingId = data.getValue("bindingId").takeIf(binding::matches) ?: return null
         val expiry = Instant.parse(data.getValue("expiresAt")).toEpochMilli()
@@ -57,6 +57,11 @@ object VisiblePushPolicy {
                 if (version != "3" || route.opt("name") != "seller.product" || params.keySet() != setOf("id") || query.length() != 0) return null
                 val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
                 "/seller?view=PRODUCTS&productId=$id"
+            }
+            "buyer.order.photo_ready" -> {
+                if (version != "4" || route.opt("name") != "order.detail" || params.keySet() != setOf("id") || query.length() != 0) return null
+                val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
+                "/orders/$id"
             }
             else -> return null
         }

@@ -36,6 +36,24 @@ class VisiblePushPolicyTest {
         assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace(id, "../auth")), now))
     }
 
+    @Test fun `buyer photo v4 opens the order with ordinary sound and existing lifecycle guards`() {
+        val input = data() + mapOf("version" to "4", "eventType" to "buyer.order.photo_ready")
+        val push = requireNotNull(VisiblePushPolicy.parse(input, now))
+        assertEquals("https://foodhome.market/orders/$id", push.destination)
+        assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(push.eventType))
+        val state = PushRegistrationState(id, bindingId = bindingId)
+        assertTrue(state.accepts(push, now))
+        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(state.clear().accepts(push, now))
+        assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
+        for (version in listOf("1", "2", "3")) assertNull(VisiblePushPolicy.parse(input + ("version" to version), now))
+        assertNull(VisiblePushPolicy.parse(data() + ("version" to "4"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("expiresAt" to "2026-09-09T10:00:00Z"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("photoUrl" to "https://example.test/private.jpg"), now))
+        assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace("order.detail", "seller.product")), now))
+        assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace(id, "../auth")), now))
+    }
+
     @Test fun `seller new order is an explicit bounded event with existing audience guards`() {
         val input = data() + ("eventType" to "seller.order.new")
         val push = requireNotNull(VisiblePushPolicy.parse(input, now))

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/native-push/v4/payload.schema.json",
+  "title": "FoodHome buyer order photo visible push v4",
+  "type": "object",
+  "required": [
+    "version",
+    "eventType",
+    "eventId",
+    "bindingId",
+    "expiresAt",
+    "route"
+  ],
+  "properties": {
+    "version": {
+      "const": 4
+    },
+    "eventType": {
+      "const": "buyer.order.photo_ready"
+    },
+    "eventId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "bindingId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "route": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "version",
+        "name",
+        "params",
+        "query"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "foodhome.logical-route"
+        },
+        "version": {
+          "const": 1
+        },
+        "name": {
+          "const": "order.detail"
+        },
+        "params": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/uuid"
+            }
+          },
+          "additionalProperties": false
+        },
+        "query": {
+          "$ref": "#/$defs/empty"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "empty": {
+      "type": "object",
+      "maxProperties": 0,
+      "additionalProperties": false
+    }
+  }
+}

@@ -2,11 +2,11 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The current local candidate targets bridge artifact `1.8.0` (major1). The last
-published artifact remains `1.7.0`; its source and checksums are in the
+The current local candidate targets bridge artifact `1.9.0` (major1). The existing
+food-home frontend archive remains `1.7.0`; its source and checksums are in the
 [published source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
 Publish and pin the accepted new source before production activation. Historical
-provenance must not be reused for the1.8.0 candidate.
+provenance must not be reused for the1.9.0 candidate.
 Server authorization and product behavior remain web-authoritative.
 
 Android notification settings recovery requires a separate food-home integration:
@@ -37,10 +37,21 @@ claim compatibility with the old silent delivery payload for visible alerts.
 | FH-OBS-001 | Accept only the documented, redacted telemetry allowlist. |
 | FH-STORE-001 | Maintain store metadata, review access, and account-deletion evidence outside source control. |
 | FH-SIGNAL-001 | Treat native signals and deep links as routing hints, never authorization. |
-# Seller moderation candidate
+# Seller moderation compatibility
 
-The coordinated candidate artifact `1.8.0` adds a separate version-3 push schema
+The accepted 1.8.0 source 8a9a76e adds the separate version-3 push schema
 for `seller.product.moderated`, supported by Android0.2.11/build13. Existing v2
 chat/order payloads and the seller new-order sound keep their prior contracts.
 The backend service event stays default-off until this native source and APK are
 published and the deployment/device gates are completed. No iOS push activation.
+
+## Buyer photo candidate
+
+Artifact `1.9.0` / Android0.2.12/build14 adds six-field version4
+`buyer.order.photo_ready`, opening only `/orders/<UUID>`. Ordinary updates sound
+and local copy ask the buyer to review the photo. No photo URL or private content
+is carried by FCM. Food-home must require the matching buyer, typed source, current
+READY_FOR_REVIEW order with a finished photo, current preferences and exact
+1.9.0/0.2.12/14 installation. ANDROID_BUYER_PHOTO_PUSH_ENABLED stays default-off
+until the coordinated source/APK and deployment are accepted. Preserve generic
+order.updated fallback for older APKs and the new APK's existing seller events.
