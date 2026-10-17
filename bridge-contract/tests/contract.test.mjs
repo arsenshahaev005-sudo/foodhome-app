@@ -25,6 +25,7 @@ const manifest = await loadJson("manifest.json");
 const packageMetadata = await loadJson("package.json");
 const packageLock = await loadJson("package-lock.json");
 const schemas = {
+  photo: await loadJson("schemas/push-v4.schema.json"),
   moderation: await loadJson("schemas/push-v3.schema.json"),
   push: await loadJson("schemas/push.schema.json"),
   request: await loadJson("schemas/request.schema.json"),
@@ -41,11 +42,26 @@ const validators = Object.fromEntries(
 );
 
 function schemaNameForFixture(filename) {
+  if (filename.startsWith("push-photo")) return "photo";
   if (filename.startsWith("push-moderation")) return "moderation";
   if (filename.startsWith("native-event")) return "native-event";
   if (filename.startsWith("remote-config")) return "remote-config";
   return path.basename(filename, ".json").split("-")[0];
 }
+
+test("buyer photo v4 stays separate from legacy order and moderation payloads", async () => {
+  const photo = await loadJson("fixtures/valid/push-photo.json");
+  assert.equal(validators.photo(photo), true);
+  for (const invalid of [
+    { ...photo, version: 2 }, { ...photo, version: 3 },
+    { ...photo, eventType: "seller.order.new" },
+    { ...photo, body: "private" }, { ...photo, photoUrl: "https://example.test/photo.jpg" },
+    { ...photo, route: { ...photo.route, name: "seller.product" } },
+    { ...photo, route: { ...photo.route, query: { orderId: photo.eventId } } },
+  ]) assert.equal(validators.photo(invalid), false);
+  assert.equal(validators.push(photo), false);
+  assert.equal(validators.moderation(photo), false);
+});
 
 test("all valid fixtures conform to their schemas", async () => {
   const directory = path.join(contractRoot, "fixtures", "valid");
@@ -127,7 +143,7 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.8.0");
+  assert.equal(manifest.contractVersion, "1.9.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);

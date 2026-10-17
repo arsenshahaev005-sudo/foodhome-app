@@ -37,6 +37,7 @@ internal class PushNotificationPresenter(private val context: Context) {
             "seller.order.new" -> R.string.notification_seller_new_order
             "chat.message" -> R.string.notification_new_message
             "seller.product.moderated" -> R.string.notification_product_moderated
+            "buyer.order.photo_ready" -> R.string.notification_order_photo_ready
             else -> R.string.notification_order_updated
         }
         val publicVersion = NotificationBranding.builder(context, kind.channelId)
