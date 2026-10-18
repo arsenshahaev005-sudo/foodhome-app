@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodhome.market/contracts/native-push/v5/payload.schema.json",
+  "title": "FoodHome open order visible push v5",
+  "type": "object",
+  "required": [
+    "version",
+    "eventType",
+    "eventId",
+    "bindingId",
+    "expiresAt",
+    "route"
+  ],
+  "properties": {
+    "version": {
+      "const": 5
+    },
+    "eventType": {
+      "enum": [
+        "seller.open_order.available",
+        "seller.open_order.updated",
+        "buyer.open_order.updated"
+      ]
+    },
+    "eventId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "bindingId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "route": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "version",
+        "name",
+        "params",
+        "query"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "foodhome.logical-route"
+        },
+        "version": {
+          "const": 1
+        },
+        "name": {
+          "enum": [
+            "open-order.buyer",
+            "open-order.seller"
+          ]
+        },
+        "params": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/uuid"
+            }
+          },
+          "additionalProperties": false
+        },
+        "query": {
+          "$ref": "#/$defs/empty"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "buyer.open_order.updated"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "route": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "const": "open-order.buyer"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "route": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "const": "open-order.seller"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "empty": {
+      "type": "object",
+      "maxProperties": 0,
+      "additionalProperties": false
+    }
+  }
+}

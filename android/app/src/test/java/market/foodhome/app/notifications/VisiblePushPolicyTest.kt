@@ -19,6 +19,29 @@ class VisiblePushPolicyTest {
         assertEquals("https://foodhome.market/orders/$id", VisiblePushPolicy.parse(data(), now)?.destination)
     }
 
+    @Test fun `open order events are bounded to their role and never use paid order sound`() {
+        for (event in listOf("seller.open_order.available", "seller.open_order.updated", "buyer.open_order.updated")) {
+            val buyer = event == "buyer.open_order.updated"
+            val route = if (buyer) "open-order.buyer" else "open-order.seller"
+            val input = data() + mapOf("version" to "5", "eventType" to event, "route" to
+                """{"protocol":"foodhome.logical-route","version":1,"name":"$route","params":{"id":"$id"},"query":{}}""")
+            val push = requireNotNull(VisiblePushPolicy.parse(input, now))
+            assertEquals("https://foodhome.market/open-orders/$id" + if (buyer) "" else "?role=seller", push.destination)
+            assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(event))
+            val state = PushRegistrationState(id, bindingId = bindingId)
+            assertTrue(state.accepts(push, now))
+            assertFalse(state.record(push.eventId).accepts(push, now))
+            assertFalse(state.clear().accepts(push, now))
+            assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
+            for (version in listOf("1", "2", "3", "4")) assertNull(VisiblePushPolicy.parse(input + ("version" to version), now))
+            assertNull(VisiblePushPolicy.parse(input + ("expiresAt" to "2026-09-09T10:00:00Z"), now))
+            assertNull(VisiblePushPolicy.parse(input + ("body" to "private"), now))
+            assertNull(VisiblePushPolicy.parse(input + ("eventType" to "seller.order.new"), now))
+            assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace(route, if (buyer) "open-order.seller" else "open-order.buyer")), now))
+            assertNull(VisiblePushPolicy.parse(input + ("route" to input.getValue("route").replace(id, "../auth")), now))
+        }
+    }
+
     @Test fun `moderation v3 opens only the seller product and preserves generation expiry and dedupe`() {
         val input = data() + mapOf("version" to "3", "eventType" to "seller.product.moderated", "route" to
             """{"protocol":"foodhome.logical-route","version":1,"name":"seller.product","params":{"id":"$id"},"query":{}}""")

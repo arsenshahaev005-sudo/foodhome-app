@@ -13,7 +13,7 @@ const forbidText = (content, forbidden, file) => {
 };
 
 const manifest = JSON.parse(read("bridge-contract/manifest.json"));
-assert.equal(manifest.contractVersion, "1.9.0");
+assert.equal(manifest.contractVersion, "1.10.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.deepEqual(manifest.phase0Capabilities, []);
 assert.deepEqual(manifest.compiledCapabilities, [
