@@ -1,0 +1,16 @@
+{
+  "version": 5,
+  "eventType": "seller.open_order.available",
+  "eventId": "7d85d3b1-6392-4e1e-81a1-673ea6e23509",
+  "bindingId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "expiresAt": "2030-01-01T00:00:00Z",
+  "route": {
+    "protocol": "foodhome.logical-route",
+    "version": 1,
+    "name": "open-order.seller",
+    "params": {
+      "id": "7d85d3b1-6392-4e1e-81a1-673ea6e23509"
+    },
+    "query": {}
+  }
+}

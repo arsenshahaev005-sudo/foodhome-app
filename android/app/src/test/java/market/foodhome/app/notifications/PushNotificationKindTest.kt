@@ -6,7 +6,8 @@ import org.junit.Test
 class PushNotificationKindTest {
     @Test fun `only explicit seller new order selects special channel`() {
         assertEquals(PushNotificationKind.SellerNewOrder, PushNotificationKind.forEvent("seller.order.new"))
-        for (event in listOf("chat.message", "order.updated", "seller.product.moderated", "buyer.order.photo_ready")) {
+        for (event in listOf("chat.message", "order.updated", "seller.product.moderated", "buyer.order.photo_ready",
+            "seller.open_order.available", "seller.open_order.updated", "buyer.open_order.updated")) {
             assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(event))
         }
         for (event in listOf("order.created", "buyer.order.new", "payment.success", "SELLER.ORDER.NEW", "")) {

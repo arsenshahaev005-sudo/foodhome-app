@@ -2,11 +2,11 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The current local candidate targets bridge artifact `1.9.0` (major1). The existing
+The current local candidate targets bridge artifact `1.10.0` (major1). The existing
 food-home frontend archive remains `1.7.0`; its source and checksums are in the
 [published source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
 Publish and pin the accepted new source before production activation. Historical
-provenance must not be reused for the1.9.0 candidate.
+provenance must not be reused for the 1.10.0 candidate.
 Server authorization and product behavior remain web-authoritative.
 
 Android notification settings recovery requires a separate food-home integration:

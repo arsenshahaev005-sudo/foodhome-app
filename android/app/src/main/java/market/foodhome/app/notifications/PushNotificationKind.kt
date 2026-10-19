@@ -9,7 +9,8 @@ internal enum class PushNotificationKind(val channelId: String) {
     companion object {
         fun forEvent(eventType: String): PushNotificationKind? = when (eventType) {
             "seller.order.new" -> SellerNewOrder
-            "order.updated", "chat.message", "seller.product.moderated", "buyer.order.photo_ready" -> Update
+            "order.updated", "chat.message", "seller.product.moderated", "buyer.order.photo_ready",
+            "seller.open_order.available", "seller.open_order.updated", "buyer.open_order.updated" -> Update
             else -> null
         }
     }
