@@ -35,4 +35,6 @@
     <string name="notification_order_photo_ready">Продавец прислал фото заказа — проверьте его</string>
     <string name="notification_open_order_available">Новая открытая заявка в вашей зоне доставки</string>
     <string name="notification_open_order_updated">Есть обновление по открытому заказу</string>
+    <string name="notification_general_title">Новое уведомление от Food&amp;Home</string>
+    <string name="notification_general_details">Откройте приложение, чтобы посмотреть подробности</string>
 </resources>

@@ -12,6 +12,8 @@ import org.json.JSONObject
 import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** One process-local owner shared by the UI and Firebase service; no Activity references. */
 class AndroidPushRuntime private constructor(context: Context) {
@@ -22,6 +24,8 @@ class AndroidPushRuntime private constructor(context: Context) {
     private val bindingClient = PushBindingClient()
     private val executor = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
+    private val syncRevision = MutableStateFlow(if (store.get().syncRequired) 1L else 0L)
+    val syncRevisions = syncRevision.asStateFlow()
     private var busy = false
     private val configured get() = BuildConfig.NATIVE_PUSH_ENABLED &&
         FirebaseApp.getApps(appContext).any { it.name == FirebaseApp.DEFAULT_APP_NAME }
@@ -62,14 +66,30 @@ class AndroidPushRuntime private constructor(context: Context) {
         val state = store.get()
         if (!state.accepts(push, now)) return
         // Persist dedupe before posting; a storage failure suppresses the notification.
-        if (store.set(state.record(push.eventId))) presenter.show(push, data)
+        val recorded = state.record(push, now) ?: return
+        if (store.set(recorded)) presenter.show(push, data)
     }
 
     @Synchronized
     fun destinationForTap(data: Map<String, String>): String? {
         if (!configured) return null
-        val push = VisiblePushPolicy.parse(data, System.currentTimeMillis()) ?: return null
-        return push.destination.takeIf { store.get().bindingId == push.bindingId }
+        val now = System.currentTimeMillis()
+        val push = VisiblePushPolicy.parse(data, now) ?: return null
+        val opened = store.get().opened(push, now) ?: return null
+        return push.destination.takeIf { store.set(opened) }
+    }
+
+    @Synchronized
+    fun messagesDeleted() {
+        if (!configured || !store.get().optedIn || store.get().bindingId == null) return
+        if (store.set(store.get().copy(syncRequired = true))) syncRevision.value += 1
+    }
+
+    @Synchronized
+    fun acknowledgeSync(revision: Long) {
+        if (syncRevision.value == revision && store.get().syncRequired) {
+            store.set(store.get().copy(syncRequired = false))
+        }
     }
 
     @Synchronized

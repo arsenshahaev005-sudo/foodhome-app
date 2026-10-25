@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -107,6 +108,14 @@ fun FoodHomeAppShell(
     var paymentEventRevision by remember { mutableIntStateOf(0) }
     var notificationEventRevision by remember { mutableIntStateOf(0) }
     val notificationSignals = remember { NotificationLifecycleSignals() }
+    val pushRuntime = remember { AndroidPushRuntime.get(context) }
+    val pushSyncRevision by pushRuntime.syncRevisions.collectAsState()
+    LaunchedEffect(pushSyncRevision) {
+        if (pushSyncRevision > 0) {
+            notificationSignals.record(NotificationLifecycleSignals.Kind.Resumed)
+            notificationEventRevision += 1
+        }
+    }
     DisposableEffect(lifecycle, notificationSignals) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -375,6 +384,7 @@ fun FoodHomeAppShell(
                     nativeEventRevision = paymentEventRevision,
                     notificationSignals = notificationSignals,
                     notificationEventRevision = notificationEventRevision,
+                    onNotificationSignalsDispatched = { pushRuntime.acknowledgeSync(pushSyncRevision) },
                     telemetry = telemetry,
                     onPaymentUserAction = {
                         lastWebUserActionAt.set(SystemClock.elapsedRealtime())

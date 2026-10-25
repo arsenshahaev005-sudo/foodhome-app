@@ -30,7 +30,7 @@ class VisiblePushPolicyTest {
             assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(event))
             val state = PushRegistrationState(id, bindingId = bindingId)
             assertTrue(state.accepts(push, now))
-            assertFalse(state.record(push.eventId).accepts(push, now))
+            assertFalse(requireNotNull(state.record(push, now)).accepts(push, now))
             assertFalse(state.clear().accepts(push, now))
             assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
             for (version in listOf("1", "2", "3", "4")) assertNull(VisiblePushPolicy.parse(input + ("version" to version), now))
@@ -50,7 +50,7 @@ class VisiblePushPolicyTest {
         assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(push.eventType))
         val state = PushRegistrationState(id, bindingId = bindingId)
         assertTrue(state.accepts(push, now))
-        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(requireNotNull(state.record(push, now)).accepts(push, now))
         assertFalse(state.clear().accepts(push, now))
         assertNull(VisiblePushPolicy.parse(input + ("version" to "2"), now))
         assertNull(VisiblePushPolicy.parse(data() + ("version" to "3"), now))
@@ -66,7 +66,7 @@ class VisiblePushPolicyTest {
         assertEquals(PushNotificationKind.Update, PushNotificationKind.forEvent(push.eventType))
         val state = PushRegistrationState(id, bindingId = bindingId)
         assertTrue(state.accepts(push, now))
-        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(requireNotNull(state.record(push, now)).accepts(push, now))
         assertFalse(state.clear().accepts(push, now))
         assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
         for (version in listOf("1", "2", "3")) assertNull(VisiblePushPolicy.parse(input + ("version" to version), now))
@@ -83,7 +83,7 @@ class VisiblePushPolicyTest {
         assertEquals("https://foodhome.market/orders/$id", push.destination)
         val state = PushRegistrationState(id, bindingId = bindingId)
         assertTrue(state.accepts(push, now))
-        assertFalse(state.record(push.eventId).accepts(push, now))
+        assertFalse(requireNotNull(state.record(push, now)).accepts(push, now))
         assertFalse(state.clear().accepts(push, now))
         assertFalse(PushRegistrationState(id, bindingId = "b".repeat(64)).accepts(push, now))
         assertNull(VisiblePushPolicy.parse(input + ("recipientRole" to "seller"), now))
@@ -173,8 +173,11 @@ class VisiblePushPolicyTest {
     @Test fun `duplicates are suppressed with bounded persistent history`() {
         val initial = PushRegistrationState(id, bindingId = bindingId)
         val push = requireNotNull(VisiblePushPolicy.parse(data(), now))
-        assertFalse(initial.record(push.eventId).accepts(push, now))
-        val many = (1..1_000).fold(initial) { state, n -> state.record(n.toString()) }
+        assertFalse(requireNotNull(initial.record(push, now)).accepts(push, now))
+        val many = (1..1_000).fold(initial) { state, n ->
+            val next = VisiblePush(n.toString(), push.eventType, bindingId, push.expiresAtMillis, push.destination)
+            state.record(next, now) ?: state
+        }
         assertEquals(128, many.seenEvents.size)
         assertFalse(many.toString().contains(id))
     }

@@ -2,12 +2,16 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The current local candidate targets bridge artifact `1.10.0` (major1). The existing
+The current local candidate targets bridge artifact `1.11.0` (major1). The existing
 food-home frontend archive remains `1.7.0`; its source and checksums are in the
 [published source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
 Publish and pin the accepted new source before production activation. Historical
-provenance must not be reused for the 1.10.0 candidate.
+provenance must not be reused for the 1.11.0 candidate.
 Server authorization and product behavior remain web-authoritative.
+
+Android administrative broadcasts and buyer notifications require separate exact
+reviewed release profiles, including review of older per-event gates:
+[v6/v7 handoff](android-broadcast-buyer-push-v6-v7.md).
 
 Android notification settings recovery requires a separate food-home integration:
 [Notification recovery 1.6](food-home-notification-recovery-1.6.md).

@@ -1,6 +1,7 @@
 package market.foodhome.app.notifications
 
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.security.MessageDigest
 import java.time.Instant
 
@@ -25,13 +26,15 @@ object VisiblePushPolicy {
         if (data.keys != keys || data.entries.sumOf { it.key.toByteArray(Charsets.UTF_8).size + it.value.toByteArray(Charsets.UTF_8).size } > 2_048) return null
         // Never promote the pre-existing silent v1 contract into a visible alert.
         val version = data["version"]
-        if (version !in setOf("2", "3", "4", "5")) return null
+        if (version !in setOf("2", "3", "4", "5", "6", "7")) return null
         val eventId = data.getValue("eventId").takeIf(uuid::matches) ?: return null
         val bindingId = data.getValue("bindingId").takeIf(binding::matches) ?: return null
         val expiry = Instant.parse(data.getValue("expiresAt")).toEpochMilli()
         if (expiry <= nowMillis || expiry > nowMillis + MAX_LIFETIME_MILLIS) return null
         val eventType = data.getValue("eventType")
-        val route = JSONObject(data.getValue("route"))
+        val routeTokens = JSONTokener(data.getValue("route"))
+        val route = routeTokens.nextValue() as? JSONObject ?: return null
+        if (routeTokens.nextClean() != '\u0000') return null
         if (route.keySet() != setOf("protocol", "version", "name", "params", "query")) return null
         if (route.opt("protocol") != "foodhome.logical-route" || route.opt("version") != 1) return null
         val params = route.getJSONObject("params")
@@ -69,6 +72,24 @@ object VisiblePushPolicy {
                 if (version != "5" || route.opt("name") != routeName || params.keySet() != setOf("id") || query.length() != 0) return null
                 val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
                 "/open-orders/$id" + if (buyer) "" else "?role=seller"
+            }
+            "broadcast.notification", "buyer.notification" -> {
+                if (version != if (eventType == "broadcast.notification") "6" else "7") return null
+                when (route.opt("name")) {
+                    "notifications.inbox" -> {
+                        if (params.length() != 0 || query.keySet() != setOf("role")) return null
+                        val role = query.opt("role") as? String ?: return null
+                        val roles = if (version == "6") setOf("ACCOUNT", "CLIENT", "SELLER") else setOf("CLIENT")
+                        if (role !in roles) return null
+                        if (role == "SELLER") "/seller?view=CHAT&section=notifications" else "/chat?section=notifications"
+                    }
+                    "order.detail" -> {
+                        if (version != "7" || params.keySet() != setOf("id") || query.length() != 0) return null
+                        val id = (params.opt("id") as? String)?.takeIf(uuid::matches) ?: return null
+                        "/orders/$id"
+                    }
+                    else -> return null
+                }
             }
             else -> return null
         }

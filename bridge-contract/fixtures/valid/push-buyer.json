@@ -1,0 +1,8 @@
+{
+  "version": 7,
+  "eventType": "buyer.notification",
+  "eventId": "0cf38ef8-3aa4-49f7-882f-378d28ccf9f6",
+  "bindingId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "expiresAt": "2026-10-25T12:10:00Z",
+  "route": {"protocol": "foodhome.logical-route", "version": 1, "name": "notifications.inbox", "params": {}, "query": {"role": "CLIENT"}}
+}
