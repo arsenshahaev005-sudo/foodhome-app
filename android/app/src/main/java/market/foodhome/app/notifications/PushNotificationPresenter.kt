@@ -28,7 +28,7 @@ internal class PushNotificationPresenter(private val context: Context) {
             )
         }
         val intent = Intent(context, MainActivity::class.java)
-            .setAction("market.foodhome.app.PUSH.${push.eventId}")
+            .setAction("market.foodhome.app.PUSH.${push.bindingId}.${push.eventId}")
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra(EXTRA_PAYLOAD, JSONObject(data).toString())
         val pending = PendingIntent.getActivity(context, 0, intent,
@@ -40,13 +40,15 @@ internal class PushNotificationPresenter(private val context: Context) {
             "buyer.order.photo_ready" -> R.string.notification_order_photo_ready
             "seller.open_order.available" -> R.string.notification_open_order_available
             "seller.open_order.updated", "buyer.open_order.updated" -> R.string.notification_open_order_updated
+            "broadcast.notification", "buyer.notification" -> R.string.notification_general_details
             else -> R.string.notification_order_updated
         }
         val publicVersion = NotificationBranding.builder(context, kind.channelId)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.notification_generic_update)).build()
         val notification = NotificationBranding.builder(context, kind.channelId)
-            .setContentTitle(context.getString(R.string.app_name))
+            .setContentTitle(context.getString(if (push.eventType in setOf("broadcast.notification", "buyer.notification"))
+                R.string.notification_general_title else R.string.app_name))
             .setContentText(context.getString(body))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)

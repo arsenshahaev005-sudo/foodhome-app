@@ -25,6 +25,8 @@ const manifest = await loadJson("manifest.json");
 const packageMetadata = await loadJson("package.json");
 const packageLock = await loadJson("package-lock.json");
 const schemas = {
+  broadcast: await loadJson("schemas/push-v6.schema.json"),
+  buyer: await loadJson("schemas/push-v7.schema.json"),
   openorder: await loadJson("schemas/push-v5.schema.json"),
   photo: await loadJson("schemas/push-v4.schema.json"),
   moderation: await loadJson("schemas/push-v3.schema.json"),
@@ -43,6 +45,8 @@ const validators = Object.fromEntries(
 );
 
 function schemaNameForFixture(filename) {
+  if (filename.startsWith("push-broadcast")) return "broadcast";
+  if (filename.startsWith("push-buyer")) return "buyer";
   if (filename.startsWith("push-openorder")) return "openorder";
   if (filename.startsWith("push-photo")) return "photo";
   if (filename.startsWith("push-moderation")) return "moderation";
@@ -145,7 +149,7 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.10.0");
+  assert.equal(manifest.contractVersion, "1.11.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);

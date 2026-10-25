@@ -1,0 +1,58 @@
+{
+  "source": {
+    "repository": "https://github.com/arsenshahaev005-sudo/food-home",
+    "commit": "e245b0e859de93ecd193538fb18aef7b5c9bbdbd",
+    "kind": "git-commit"
+  },
+  "encoding": "Exact Git blob bytes, not Windows working-tree/CRLF bytes",
+  "files": [
+    {
+      "sourcePath": "backend/api/contracts/native_push/v6/payload.schema.json",
+      "targetPath": "bridge-contract/schemas/push-v6.schema.json",
+      "gitBlob": "c5f3aa2121d37ab3f12b8a28b516f2a11dff3827",
+      "sha256": "fc61e511a3711d8426540c6918a7fa03e7c63b221f726c896ac72b11bc3fa7d4"
+    },
+    {
+      "sourcePath": "backend/api/contracts/native_push/v6/fixtures/valid/push-broadcast.json",
+      "targetPath": "bridge-contract/fixtures/valid/push-broadcast.json",
+      "gitBlob": "9430289152436074687bb239f5397bf61f21a8b6",
+      "sha256": "b4362e35b7429b747042b7c025460f5eeac3a834c6f13a8dc274c14b31fb5d72"
+    },
+    {
+      "sourcePath": "backend/api/contracts/native_push/v7/payload.schema.json",
+      "targetPath": "bridge-contract/schemas/push-v7.schema.json",
+      "gitBlob": "d06d065e7da6c4cc5ff39d17afb591e4f142d732",
+      "sha256": "1800e5d9c47c773f3ad57664c1e5e38f1d422fe96939517e33d1f659c4d3679e"
+    },
+    {
+      "sourcePath": "backend/api/contracts/native_push/v7/fixtures/valid/push-buyer.json",
+      "targetPath": "bridge-contract/fixtures/valid/push-buyer.json",
+      "gitBlob": "8d1c1f8ca6fac27c223bb43966527e32ebd1ea87",
+      "sha256": "3116c982294ebe1ac33b21bcd972f1cb878196bc623f3a1c4aa28c15d83bf3ac"
+    },
+    {
+      "sourcePath": "docs/integration/admin-broadcast-push-v6.md",
+      "targetPath": "docs/integration/server-admin-broadcast-push-v6.md",
+      "gitBlob": "491634676134ee098c693fc43df7c9dcbb96b010",
+      "sha256": "83927d28d2e3093596aaca026b7bcce7761571d6e38d0374860f3dd6c90060eb"
+    },
+    {
+      "sourcePath": "docs/integration/admin-broadcast-push-v6.sha256",
+      "targetPath": "docs/integration/server-admin-broadcast-push-v6.sha256",
+      "gitBlob": "b180b2d3c584a46b8bdfcbfefd506d23589b1776",
+      "sha256": "adfe39e9fdad6790bb85e8ccf5489b96fedc4355d6b66d6b22e930af8d55af9f"
+    },
+    {
+      "sourcePath": "docs/integration/buyer-notifications-v7.md",
+      "targetPath": "docs/integration/server-buyer-notifications-v7.md",
+      "gitBlob": "72688a50116d584873e9013b6de966af86a20bac",
+      "sha256": "81b19241adfdf7c6892444d6757155f4806f78c4790eccc12b6dfa8e2036c07d"
+    },
+    {
+      "sourcePath": "docs/integration/buyer-notifications-v7.sha256",
+      "targetPath": "docs/integration/server-buyer-notifications-v7.sha256",
+      "gitBlob": "88d68ee00df7e50dfb84143b125634b5aec6f48d",
+      "sha256": "28d1fdc287c75071678a3bc7939fd2b168c14193aa4b22fc004b38d1a011b1f7"
+    }
+  ]
+}

@@ -80,6 +80,7 @@ fun FoodHomeWebView(
     modifier: Modifier = Modifier,
     notificationSignals: NotificationLifecycleSignals? = null,
     notificationEventRevision: Int = 0,
+    onNotificationSignalsDispatched: () -> Unit = {},
 ) {
     var ownedWebView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
@@ -101,7 +102,10 @@ fun FoodHomeWebView(
                     if (continuation.isActive) continuation.resume(result == "true")
                 }
             }
-            if (dispatched) return@LaunchedEffect
+            if (dispatched) {
+                onNotificationSignalsDispatched()
+                return@LaunchedEffect
+            }
             delay(1_000)
         }
     }

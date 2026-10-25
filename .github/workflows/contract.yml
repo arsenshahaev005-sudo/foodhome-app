@@ -40,6 +40,12 @@ jobs:
           cache-dependency-path: bridge-contract/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
+      - name: Verify canonical server push source hashes
+        working-directory: .
+        run: node scripts/sync-server-push-contracts.mjs
+      - name: Verify Android expanded push lifecycle invariants
+        working-directory: .
+        run: node --test scripts/android-expanded-push.test.mjs
       - name: Verify secure shell invariants
         working-directory: .
         run: node scripts/verify-secure-shells.mjs
