@@ -1,8 +1,10 @@
 {
   "protocol": "foodhome.bridge",
-  "contractVersion": "1.11.0",
+  "contractVersion": "1.12.0",
   "bridgeMajor": 1,
-  "supportedVersions": [1],
+  "supportedVersions": [
+    1
+  ],
   "globalObjectName": "FoodHomeBridge",
   "handshake": {
     "transport": "dom-event",
@@ -42,14 +44,34 @@
     "ackNativeEvent",
     "clearPaymentRecovery",
     "getNotificationStatus",
-    "requestNotificationPermission"
+    "requestNotificationPermission",
+    "startSberAuth"
   ],
   "rateLimits": {
-    "openNotificationSettings": { "maxRequests": 1, "windowSeconds": 5 },
-    "managePush": { "maxRequests": 5, "windowSeconds": 60 },
-    "requestLocation": { "maxRequests": 3, "windowSeconds": 60 },
-    "openPayment": { "maxRequests": 3, "windowSeconds": 60 },
-    "requestNotificationPermission": { "maxRequests": 1, "windowSeconds": 30 }
+    "openNotificationSettings": {
+      "maxRequests": 1,
+      "windowSeconds": 5
+    },
+    "managePush": {
+      "maxRequests": 5,
+      "windowSeconds": 60
+    },
+    "requestLocation": {
+      "maxRequests": 3,
+      "windowSeconds": 60
+    },
+    "openPayment": {
+      "maxRequests": 3,
+      "windowSeconds": 60
+    },
+    "requestNotificationPermission": {
+      "maxRequests": 1,
+      "windowSeconds": 30
+    },
+    "startSberAuth": {
+      "maxRequests": 3,
+      "windowSeconds": 60
+    }
   },
   "conditionalMethods": {
     "openAuth": "disabled-until-production-oauth-is-confirmed"
@@ -85,7 +107,14 @@
     "INTERNAL_ERROR"
   ],
   "phase0Capabilities": [],
-  "platformBuiltInCapabilities": { "android": ["managePush", "openNotificationSettings"], "ios": [] },
+  "platformBuiltInCapabilities": {
+    "android": [
+      "managePush",
+      "openNotificationSettings",
+      "startSberAuth"
+    ],
+    "ios": []
+  },
   "builtInCapabilities": [
     "getNotificationStatus",
     "openPayment",

@@ -86,6 +86,7 @@ fun FoodHomeAppShell(
     paymentReturnRouter: AndroidPaymentReturnRouter,
     telemetry: TelemetryReporter,
     onOpenExternal: (Uri) -> Unit,
+    onStartSberAuth: (String, String) -> Boolean = { _, _ -> false },
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -272,6 +273,11 @@ fun FoodHomeAppShell(
         AndroidCapabilityCoordinator(
             manifest = manifest,
             trustedOrigin = environment.trustedOrigin,
+            launchSberAuth = onStartSberAuth,
+            canStartSberAuth = {
+                lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+                    (SystemClock.elapsedRealtime() - lastWebUserActionAt.get()) in 0..10_000
+            },
             presentShare = { payload ->
                 val items = buildList {
                     payload.title?.takeIf(String::isNotBlank)?.let(::add)

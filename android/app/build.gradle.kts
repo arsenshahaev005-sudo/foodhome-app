@@ -40,9 +40,12 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "0.2.14"
+        versionCode = 17
+        versionName = "0.2.15"
         buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
+        buildConfigField("boolean", "STAGING", "false")
+        buildConfigField("boolean", "SBER_WEB_AUTH_ENABLED", "false")
+        manifestPlaceholders["sberAppLinkHost"] = "foodhome.market"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -50,6 +53,19 @@ android {
         debug {
             buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", "false")
             buildConfigField("String", "DEBUG_BASE_URL", "\"$debugBaseUrl\"")
+        }
+        create("staging") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            matchingFallbacks += "debug"
+            signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("boolean", "STAGING", "true")
+            buildConfigField("boolean", "SBER_WEB_AUTH_ENABLED", "true")
+            buildConfigField("boolean", "NATIVE_PUSH_ENABLED", "false")
+            buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", "false")
+            buildConfigField("String", "DEBUG_BASE_URL", "\"\"")
+            manifestPlaceholders["sberAppLinkHost"] = "staging.foodhome.market"
         }
         release {
             buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", directApkUpdatesEnabled.toString())
@@ -126,6 +142,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.webkit)
+    implementation(libs.androidx.browser)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

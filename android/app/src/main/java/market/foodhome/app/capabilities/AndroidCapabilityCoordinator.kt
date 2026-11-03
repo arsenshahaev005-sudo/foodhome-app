@@ -29,8 +29,11 @@ class AndroidCapabilityCoordinator(
     private val telemetry: TelemetryReporter = TelemetryReporter.disabled(trustedOrigin),
     private val managePush: ((JSONObject, (BridgeDispatchResult) -> Unit) -> Unit)? = null,
     private val openNotificationSettings: () -> Boolean = { false },
+    private val launchSberAuth: ((String, String) -> Boolean)? = null,
+    private val canStartSberAuth: () -> Boolean = { false },
     private val canOpenNotificationSettings: () -> Boolean = { false },
 ) : BridgeCapabilityDispatcher {
+    private val sberPolicy = market.foodhome.app.auth.SberAuthPolicy(trustedOrigin)
     private val sharePolicy = FoodHomeSharePolicy(trustedOrigin)
     private val rateLimiter = CapabilityRateLimiter(nowMillis)
 
@@ -57,6 +60,21 @@ class AndroidCapabilityCoordinator(
         }
 
         when (request.method) {
+            "startSberAuth" -> {
+                val attempt = request.payload.optString("attemptId")
+                val url = request.payload.optString("url")
+                if (!sberPolicy.acceptsAuthorization(attempt, url) || request.payload.length() != 2) {
+                    reportingCompletion(failure("INVALID_PAYLOAD", "Invalid Sber authorization request")); return
+                }
+                if (!canStartSberAuth()) {
+                    reportingCompletion(failure("CANCELLED", "Authentication requires a foreground user action")); return
+                }
+                if (!enforceRateLimit("startSberAuth", reportingCompletion)) return
+                val opened = runCatching { launchSberAuth?.invoke(attempt, url) == true }.getOrDefault(false)
+                reportingCompletion(if (opened) BridgeDispatchResult.Success(
+                    JSONObject().put("capability", "startSberAuth").put("status", "presented"),
+                ) else failure("LAUNCH_FAILED", "Authentication browser could not be opened"))
+            }
             "openNotificationSettings" -> {
                 if (request.payload.length() != 0) {
                     reportingCompletion(failure("INVALID_PAYLOAD", "Settings payload must be empty")); return

@@ -11,7 +11,11 @@ object AppEnvironmentResolver {
     val productionOrigin: URI = URI("https://foodhome.market")
     private val localDebugHosts = setOf("localhost", "127.0.0.1", "::1")
 
-    fun resolve(isDebug: Boolean, debugBaseUrl: String?): AppEnvironment {
+    fun resolve(isDebug: Boolean, debugBaseUrl: String?, isStaging: Boolean = false): AppEnvironment {
+        if (isStaging) {
+            require(isDebug) { "Staging is a separate debuggable build" }
+            return AppEnvironment(URI("https://staging.foodhome.market/"), URI("https://staging.foodhome.market"))
+        }
         if (!isDebug || debugBaseUrl.isNullOrBlank()) return production()
 
         val candidate = runCatching { URI(debugBaseUrl.trim()).normalize() }.getOrNull()
