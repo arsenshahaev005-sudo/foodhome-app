@@ -29,7 +29,11 @@ class MainActivity : ComponentActivity() {
         AppEnvironmentResolver.resolve(
             isDebug = BuildConfig.DEBUG,
             debugBaseUrl = BuildConfig.DEBUG_BASE_URL,
+            isStaging = BuildConfig.STAGING,
         )
+    }
+    private val sberAuth by lazy {
+        market.foodhome.app.auth.AndroidSberAuthCoordinator(this, environment.trustedOrigin, BuildConfig.SBER_WEB_AUTH_ENABLED)
     }
     private val navigationPolicy by lazy { NavigationPolicy(environment.trustedOrigin) }
     private val navigationCoordinator by lazy { NavigationCoordinator(navigationPolicy) }
@@ -55,7 +59,7 @@ class MainActivity : ComponentActivity() {
         intent.dataString?.let(::offerDeepLink)
         offerPushRoute(intent)
 
-        val manifest = assets.open("manifest.json").use(BridgeManifest::from).forAndroidPush(BuildConfig.NATIVE_PUSH_ENABLED)
+        val manifest = assets.open("manifest.json").use(BridgeManifest::from).forAndroidPush(BuildConfig.NATIVE_PUSH_ENABLED).forAndroidSber(BuildConfig.SBER_WEB_AUTH_ENABLED)
         telemetry.record(
             TelemetryEventName.ShellLaunch,
             mapOf(
@@ -67,6 +71,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             FoodHomeAppShell(
                 environment = environment,
+                onStartSberAuth = sberAuth::launch,
                 navigationCoordinator = navigationCoordinator,
                 manifest = manifest,
                 paymentCoordinator = paymentCoordinator,
@@ -135,6 +140,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun offerDeepLink(rawUrl: String) {
+        val path = runCatching { java.net.URI(rawUrl).path }.getOrNull()
+        if (path?.startsWith("/auth/sber/") == true) {
+            // Never let a ticket enter telemetry or generic external navigation.
+            if (sberAuth.acceptsReturn(rawUrl)) navigationCoordinator.offerDeepLink(rawUrl)
+            intent?.data = null
+            return
+        }
         if (!navigationCoordinator.offerDeepLink(rawUrl)) {
             telemetry.record(
                 TelemetryEventName.DeepLinkOpenFailed,

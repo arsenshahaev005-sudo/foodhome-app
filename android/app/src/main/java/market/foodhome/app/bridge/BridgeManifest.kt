@@ -48,6 +48,12 @@ data class BridgeManifest(
         compiledCapabilities = (if (enabled) compiledCapabilities + "managePush" else compiledCapabilities - "managePush") + "openNotificationSettings",
     )
 
+    fun forAndroidSber(enabled: Boolean): BridgeManifest = copy(
+        builtInCapabilities = builtInCapabilities + "startSberAuth",
+        advertisedCapabilities = if (enabled) advertisedCapabilities + "startSberAuth" else advertisedCapabilities - "startSberAuth",
+        compiledCapabilities = if (enabled) compiledCapabilities + "startSberAuth" else compiledCapabilities - "startSberAuth",
+    )
+
     companion object {
         fun from(input: InputStream): BridgeManifest {
             val json = JSONObject(input.bufferedReader().use { it.readText() })

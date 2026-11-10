@@ -11,6 +11,7 @@ class BridgePayloadPolicy(
     trustedOrigin: URI,
     private val maxMessageBytes: Int,
 ) {
+    private val sberPolicy = market.foodhome.app.auth.SberAuthPolicy(trustedOrigin)
     private val sharePolicy = FoodHomeSharePolicy(trustedOrigin)
 
     fun accepts(method: String, payload: JSONObject): Boolean {
@@ -18,6 +19,8 @@ class BridgePayloadPolicy(
             return false
         }
         return when (method) {
+            "startSberAuth" -> payload.length() == 2 &&
+                sberPolicy.acceptsAuthorization(payload.optionalString("attemptId") ?: "", payload.optionalString("url") ?: "")
             "managePush" -> PushBindingPolicy.accepts(payload)
             "openNotificationSettings" -> payload.length() == 0
             "share" -> {
