@@ -40,8 +40,8 @@ android {
         applicationId = "market.foodhome.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.2.15"
+        versionCode = 18
+        versionName = "0.2.16"
         buildConfigField("boolean", "NATIVE_PUSH_ENABLED", nativePushEnabled.toString())
         buildConfigField("boolean", "STAGING", "false")
         buildConfigField("boolean", "SBER_WEB_AUTH_ENABLED", "false")
@@ -68,6 +68,7 @@ android {
             manifestPlaceholders["sberAppLinkHost"] = "staging.foodhome.market"
         }
         release {
+            buildConfigField("boolean", "SBER_WEB_AUTH_ENABLED", "true")
             buildConfigField("boolean", "DIRECT_APK_UPDATES_ENABLED", directApkUpdatesEnabled.toString())
             isMinifyEnabled = true
             isShrinkResources = true
