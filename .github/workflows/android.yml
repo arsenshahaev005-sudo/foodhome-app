@@ -45,10 +45,14 @@ jobs:
         working-directory: android
         run: >-
           bash ./gradlew
+          -Pandroid.onlyEnableUnitTestForTheTestedBuildType=false
           testDebugUnitTest
+          testStagingUnitTest
           lintDebug
+          lintStaging
           lintRelease
           assembleDebug
+          assembleStaging
           assembleRelease
           assembleDebugAndroidTest
           --no-daemon
