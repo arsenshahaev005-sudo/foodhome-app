@@ -36,12 +36,15 @@ if (entitlements.get("application-identifier") != f"{team}.{bundle}"
         or profile.get("ProvisionsAllDevices") or "ProvisionedDevices" in profile
         or profile["ExpirationDate"].replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc)):
     sys.exit("Expected a current App Store distribution profile for this app.")
-uuid = str(UUID(profile["UUID"])).upper()
+profile_uuid = profile["UUID"]
+if str(UUID(profile_uuid)) != profile_uuid.lower():
+    sys.exit("Expected a hyphenated provisioning profile UUID.")
 # Xcode and security find-identity identify a certificate by its SHA-1 fingerprint.
 options = {
     "method": "app-store-connect", "destination": "upload", "teamID": team,
     "signingStyle": "manual", "signingCertificate": hashlib.sha1(certificate).hexdigest().upper(),
-    "provisioningProfiles": {bundle: uuid}, "manageAppVersionAndBuildNumber": False,
+    # Use the exact spelling that Xcode used to sign the archive.
+    "provisioningProfiles": {bundle: profile_uuid}, "manageAppVersionAndBuildNumber": False,
     "testFlightInternalTestingOnly": True,
 }
 (directory / "ExportOptions.plist").write_bytes(plistlib.dumps(options))
