@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		200000000000000000000022 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* Assets.xcassets */; };
+		200000000000000000000023 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* PrivacyInfo.xcprivacy */; };
 		200000000000000000000001 /* FoodHomeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* FoodHomeApp.swift */; };
 		200000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* ContentView.swift */; };
 		200000000000000000000003 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* AppEnvironment.swift */; };
@@ -77,6 +79,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		100000000000000000000022 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		100000000000000000000023 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		100000000000000000000001 /* FoodHomeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHomeApp.swift; sourceTree = "<group>"; };
 		100000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		100000000000000000000003 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
@@ -181,6 +185,8 @@
 		000000000000000000000004 /* FoodHomeApp */ = {
 			isa = PBXGroup;
 			children = (
+				100000000000000000000022 /* Assets.xcassets */,
+				100000000000000000000023 /* PrivacyInfo.xcprivacy */,
 				100000000000000000000001 /* FoodHomeApp.swift */,
 				100000000000000000000002 /* ContentView.swift */,
 				000000000000000000000005 /* Configuration */,
@@ -449,6 +455,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				20000000000000000000000E /* manifest.json in Resources */,
+				200000000000000000000022 /* Assets.xcassets in Resources */,
+				200000000000000000000023 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -666,6 +674,7 @@
 		510000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -693,6 +702,7 @@
 		510000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
