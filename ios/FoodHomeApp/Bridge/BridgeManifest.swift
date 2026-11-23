@@ -86,9 +86,16 @@ struct BridgeManifest: Decodable, Sendable {
     let limits: Limits
     let methods: Set<String>
     let phase0Capabilities: Set<String>
-    let compiledCapabilities: Set<String>
-    let builtInCapabilities: Set<String>
-    let advertisedCapabilities: Set<String>
+    private let sharedCompiled: Set<String>
+    private let sharedBuiltIn: Set<String>
+    private let sharedAdvertised: Set<String>
+    private let platformBuiltInCapabilities: [String: Set<String>]?
+    private var iosCapabilities: Set<String> {
+        (platformBuiltInCapabilities?["ios"] ?? []).intersection(["startSberAuth"]).intersection(methods)
+    }
+    var compiledCapabilities: Set<String> { sharedCompiled.union(iosCapabilities) }
+    var builtInCapabilities: Set<String> { sharedBuiltIn.union(iosCapabilities) }
+    var advertisedCapabilities: Set<String> { sharedAdvertised.union(iosCapabilities) }
     let rateLimits: [String: RateLimitRule]
 
     private enum CodingKeys: String, CodingKey {
@@ -103,9 +110,10 @@ struct BridgeManifest: Decodable, Sendable {
         case limits
         case methods
         case phase0Capabilities
-        case compiledCapabilities
-        case builtInCapabilities
-        case advertisedCapabilities
+        case sharedCompiled = "compiledCapabilities"
+        case sharedBuiltIn = "builtInCapabilities"
+        case sharedAdvertised = "advertisedCapabilities"
+        case platformBuiltInCapabilities
         case rateLimits
     }
 
@@ -140,9 +148,10 @@ struct BridgeManifest: Decodable, Sendable {
         self.limits = limits
         self.methods = methods
         self.phase0Capabilities = phase0Capabilities
-        self.compiledCapabilities = compiledCapabilities
-        self.builtInCapabilities = builtInCapabilities ?? compiledCapabilities
-        self.advertisedCapabilities = advertisedCapabilities ?? compiledCapabilities
+        self.sharedCompiled = compiledCapabilities
+        self.sharedBuiltIn = builtInCapabilities ?? compiledCapabilities
+        self.sharedAdvertised = advertisedCapabilities ?? compiledCapabilities
+        self.platformBuiltInCapabilities = nil
         self.rateLimits = rateLimits
     }
 
