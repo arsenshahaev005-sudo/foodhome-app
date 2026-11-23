@@ -55,6 +55,7 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
                 trustedOrigin: environment.trustedOrigin,
                 paymentCoordinator: paymentCoordinator,
                 hasRecentPaymentUserAction: { paymentUserActionTracker.isRecent() },
+                hasRecentAuthUserAction: { paymentUserActionTracker.isRecent(within: 10) },
                 telemetry: telemetryReporter
             )
         }
@@ -114,6 +115,7 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
         capabilityCoordinator?.presenterProvider = { [weak self] in
             self?.presentationController()
         }
+        capabilityCoordinator?.onSberReturn = { [weak self] url in self?.load(url) }
         mediaPickerCoordinator.presenterProvider = { [weak self] in
             self?.presentationController()
         }
@@ -136,6 +138,17 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
     func startIfNeeded() {
         guard !started else { return }
         started = true
+#if DEBUG
+        if fixedLaunchState == .content {
+            webView.navigationDelegate = nil
+            webView.loadHTMLString("""
+                <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+                <style>body {margin:0} nav {position:fixed;bottom:0;width:100%;padding-bottom:env(safe-area-inset-bottom)} button {display:block;width:100%;height:64px}</style>
+                <nav><button onclick="this.textContent='Меню открыто'">Открыть меню</button></nav>
+                """, baseURL: nil)
+            return
+        }
+#endif
         guard fixedLaunchState == nil else { return }
         load(environment.baseURL)
     }
@@ -247,7 +260,8 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // The hosted viewport uses viewport-fit=cover and pads its navigation for the home indicator.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         let paymentGesture = UILongPressGestureRecognizer(
             target: self,
             action: #selector(recordPaymentUserAction)
@@ -467,6 +481,7 @@ extension WebViewStore: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        capabilityCoordinator?.cancelPending()
         trustedDocumentReady = false
         state = .loading
         if let navigationAttachment {
@@ -571,10 +586,10 @@ private final class PaymentUserActionTracker {
         lastActionAt = ProcessInfo.processInfo.systemUptime
     }
 
-    func isRecent() -> Bool {
+    func isRecent(within interval: TimeInterval = 2) -> Bool {
         guard let lastActionAt else { return false }
         let elapsed = ProcessInfo.processInfo.systemUptime - lastActionAt
-        return elapsed >= 0 && elapsed <= 2
+        return elapsed >= 0 && elapsed <= interval
     }
 }
 

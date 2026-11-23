@@ -4,6 +4,9 @@ import UIKit
 @MainActor
 final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
     var presenterProvider: (() -> UIViewController?)?
+    var onSberReturn: ((URL) -> Void)?
+    private let sberSession: IOSSberAuthSession
+    private let hasRecentAuthUserAction: () -> Bool
 
     private let manifest: BridgeManifest
     private let sharePolicy: FoodHomeSharePolicy
@@ -19,10 +22,13 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         trustedOrigin: URL,
         paymentCoordinator: PaymentCoordinator? = nil,
         hasRecentPaymentUserAction: @escaping () -> Bool = { false },
+        hasRecentAuthUserAction: @escaping () -> Bool = { false },
         now: @escaping () -> Date = Date.init,
         telemetry: TelemetryReporter? = nil
     ) {
         self.manifest = manifest
+        self.sberSession = IOSSberAuthSession(trustedOrigin: trustedOrigin)
+        self.hasRecentAuthUserAction = hasRecentAuthUserAction
         self.sharePolicy = FoodHomeSharePolicy(trustedOrigin: trustedOrigin)
         self.locationProvider = IOSLocationProvider()
         self.notificationCoordinator = IOSNotificationCoordinator()
@@ -52,6 +58,19 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         }
 
         switch request.method {
+        case "startSberAuth":
+            guard let window = presenterProvider?()?.viewIfLoaded?.window, hasRecentAuthUserAction(),
+                  let attempt = request.payload["attemptId"] as? String, let url = request.payload["url"] as? String,
+                  let onSberReturn else {
+                reportingCompletion(.failure(code: "CANCELLED", message: "Authentication requires a foreground user action"))
+                return
+            }
+            guard enforceRateLimit(method: request.method, completion: reportingCompletion) else { return }
+            if sberSession.start(attemptID: attempt, rawURL: url, window: window, onReturn: onSberReturn) {
+                reportingCompletion(.success(["capability": request.method, "status": "presented"]))
+            } else {
+                reportingCompletion(.failure(code: "LAUNCH_FAILED", message: "Authentication browser could not be opened"))
+            }
         case "share":
             dispatchShare(request, completion: reportingCompletion)
         case "requestLocation":
@@ -162,6 +181,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
     }
 
     func cancelPending() {
+        sberSession.cancel()
         locationProvider.cancel()
     }
 
@@ -213,57 +233,22 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         completion: @escaping (BridgeDispatchResult) -> Void
     ) {
         guard enforceRateLimit(method: "requestLocation", completion: completion) else { return }
-        guard let purpose = request.payload["purpose"] as? String,
-              let presenter = presenterProvider?(),
-              presenter.presentedViewController == nil
-        else {
+        guard presenterProvider?()?.viewIfLoaded?.window != nil else {
             completion(unavailable())
             return
         }
-
-        let alert = UIAlertController(
-            title: "Разрешить геолокацию?",
-            message: purpose,
-            preferredStyle: .alert
-        )
-        alert.addAction(
-            UIAlertAction(title: "Не сейчас", style: .cancel) { _ in
-                completion(
-                    .failure(
-                        code: "CANCELLED",
-                        message: "Location request was cancelled"
-                    )
-                )
+        locationProvider.requestCurrentLocation { result in
+            switch result {
+            case let .granted(latitude, longitude, accuracyMeters, precise):
+                completion(.success([
+                    "capability": "requestLocation", "status": "granted",
+                    "latitude": latitude, "longitude": longitude,
+                    "accuracyMeters": accuracyMeters, "precise": precise,
+                ]))
+            case let .failed(code, message, retryable):
+                completion(.failure(code: code, message: message, retryable: retryable))
             }
-        )
-        alert.addAction(
-            UIAlertAction(title: "Продолжить", style: .default) { [weak self] _ in
-                self?.locationProvider.requestCurrentLocation { result in
-                    switch result {
-                    case let .granted(latitude, longitude, accuracyMeters, precise):
-                        completion(
-                            .success([
-                                "capability": "requestLocation",
-                                "status": "granted",
-                                "latitude": latitude,
-                                "longitude": longitude,
-                                "accuracyMeters": accuracyMeters,
-                                "precise": precise,
-                            ])
-                        )
-                    case let .failed(code, message, retryable):
-                        completion(
-                            .failure(
-                                code: code,
-                                message: message,
-                                retryable: retryable
-                            )
-                        )
-                    }
-                }
-            }
-        )
-        presenter.present(alert, animated: true)
+        }
     }
 
     private func dispatchNotificationPermission(

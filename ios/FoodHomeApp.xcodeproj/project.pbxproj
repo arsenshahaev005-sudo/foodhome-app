@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		200000000000000000000025 /* IOSSberAuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000025 /* IOSSberAuthSession.swift */; };
+		200000000000000000000024 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* LaunchScreen.storyboard */; };
 		200000000000000000000022 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* Assets.xcassets */; };
 		200000000000000000000023 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* PrivacyInfo.xcprivacy */; };
 		200000000000000000000001 /* FoodHomeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* FoodHomeApp.swift */; };
@@ -79,6 +81,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		100000000000000000000025 /* IOSSberAuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSSberAuthSession.swift; sourceTree = "<group>"; };
+		100000000000000000000024 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		100000000000000000000022 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		100000000000000000000023 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		100000000000000000000001 /* FoodHomeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHomeApp.swift; sourceTree = "<group>"; };
@@ -186,6 +190,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000022 /* Assets.xcassets */,
+				100000000000000000000024 /* LaunchScreen.storyboard */,
 				100000000000000000000023 /* PrivacyInfo.xcprivacy */,
 				100000000000000000000001 /* FoodHomeApp.swift */,
 				100000000000000000000002 /* ContentView.swift */,
@@ -264,6 +269,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000010 /* CapabilityPolicies.swift */,
+				100000000000000000000025 /* IOSSberAuthSession.swift */,
 				100000000000000000000012 /* IOSCapabilityCoordinator.swift */,
 			);
 			path = Capabilities;
@@ -456,6 +462,7 @@
 			files = (
 				20000000000000000000000E /* manifest.json in Resources */,
 				200000000000000000000022 /* Assets.xcassets in Resources */,
+				200000000000000000000024 /* LaunchScreen.storyboard in Resources */,
 				200000000000000000000023 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -496,6 +503,7 @@
 				20000000000000000000000D /* WebViewContainer.swift in Sources */,
 				20000000000000000000000F /* NavigationCoordinator.swift in Sources */,
 				200000000000000000000010 /* CapabilityPolicies.swift in Sources */,
+				200000000000000000000025 /* IOSSberAuthSession.swift in Sources */,
 				200000000000000000000011 /* PushLifecyclePolicy.swift in Sources */,
 				200000000000000000000012 /* IOSCapabilityCoordinator.swift in Sources */,
 				200000000000000000000013 /* IOSLocationProvider.swift in Sources */,
@@ -686,7 +694,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Геолокация используется только по вашему запросу, чтобы показать доступную доставку рядом.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = market.foodhome.app;
@@ -713,7 +721,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Геолокация используется только по вашему запросу, чтобы показать доступную доставку рядом.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = market.foodhome.app;

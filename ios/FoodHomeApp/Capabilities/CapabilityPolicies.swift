@@ -58,6 +58,10 @@ struct BridgePayloadPolicy {
         }
 
         switch method {
+        case "startSberAuth":
+            guard payload.count == 2, let attempt = payload["attemptId"] as? String,
+                  let url = payload["url"] as? String else { return false }
+            return SberAuthPolicy(trustedOrigin: trustedOrigin).authorizationURL(attemptID: attempt, raw: url) != nil
         case "share":
             guard payload.count <= 3,
                   optionalStringHasValidType(payload, key: "title"),

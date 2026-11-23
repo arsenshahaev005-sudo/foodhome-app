@@ -8,9 +8,16 @@ struct ContentView: View {
         let environment = AppEnvironmentResolver.current()
         let fixedLaunchState: AppShellState?
 #if DEBUG
-        fixedLaunchState = ProcessInfo.processInfo.arguments.contains("--ui-test-offline")
-            ? .offline
-            : nil
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--ui-test-offline") {
+            fixedLaunchState = .offline
+        } else if arguments.contains("--ui-test-loading") {
+            fixedLaunchState = .loading
+        } else if arguments.contains("--ui-test-viewport") {
+            fixedLaunchState = .content
+        } else {
+            fixedLaunchState = nil
+        }
 #else
         fixedLaunchState = nil
 #endif
@@ -30,15 +37,14 @@ struct ContentView: View {
 
             WebViewContainer(store: store)
                 .id(store.webViewGeneration)
+                .ignoresSafeArea(.container, edges: .bottom)
 
             switch store.state {
             case .content:
                 EmptyView()
             case .loading:
-                StatusPanel(
-                    title: "Food&Home",
-                    message: "Загружаем домашнюю еду…"
-                )
+                LaunchSurface()
+                    .ignoresSafeArea(.container)
             case .offline:
                 RecoveryPanel(
                     title: "Нет подключения",
@@ -99,6 +105,40 @@ struct ContentView: View {
             guard let route = event.object as? URL else { return }
             store.offerPushRoute(route)
         }
+    }
+}
+
+private struct LaunchSurface: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geometry in
+            VStack(spacing: 16) {
+                Image("FoodHomeWordmark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: min(geometry.size.width * 0.76, 280))
+                TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+                    HStack(spacing: 6) {
+                        ForEach(0..<3) { index in
+                            let elapsed = timeline.date.timeIntervalSinceReferenceDate + Double(index) * 0.12
+                            let phase = elapsed.truncatingRemainder(dividingBy: 0.9)
+                            let pulse = reduceMotion ? 1.0 : max(0, 1 - abs(phase - 0.36) / 0.36)
+                            Circle()
+                                .fill(Color(red: 201 / 255, green: 130 / 255, blue: 91 / 255))
+                                .frame(width: 6, height: 6)
+                                .opacity(0.28 + 0.72 * pulse)
+                                .offset(y: -4 * pulse)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(red: 1, green: 247 / 255, blue: 237 / 255))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Загружаем Food&Home")
+        .accessibilityIdentifier("foodhome.shell.loading")
     }
 }
 

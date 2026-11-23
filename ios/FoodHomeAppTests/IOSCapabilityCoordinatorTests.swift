@@ -1,4 +1,5 @@
 import XCTest
+import CoreLocation
 @testable import FoodHomeApp
 
 @MainActor
@@ -27,7 +28,7 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
 
     func testBundledManifestBuildsPaymentButDoesNotAdvertiseIt() throws {
         let value = try XCTUnwrap(BridgeManifest.load())
-        XCTAssertEqual(value.contractVersion, "1.12.0")
+        XCTAssertEqual(value.contractVersion, "1.13.0")
         XCTAssertEqual(value.limits.maxJsonDepth, 12)
         XCTAssertEqual(value.limits.maxJsonNodes, 512)
         XCTAssertEqual(
@@ -38,6 +39,7 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
             value.compiledCapabilities,
             [
                 "share",
+                "startSberAuth",
                 "requestLocation",
                 "getNotificationStatus",
                 "requestNotificationPermission",
@@ -46,6 +48,37 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
         XCTAssertFalse(value.compiledCapabilities.contains("openPayment"))
         XCTAssertTrue(value.builtInCapabilities.contains("openPayment"))
         XCTAssertFalse(value.advertisedCapabilities.contains("openPayment"))
+        XCTAssertTrue(value.advertisedCapabilities.contains("startSberAuth"))
+    }
+
+    func testLocationChoosesFreshAccurateFix() {
+        let now = Date()
+        func fix(accuracy: Double, age: TimeInterval) -> CLLocation {
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.5, longitude: 46),
+                       altitude: 0, horizontalAccuracy: accuracy, verticalAccuracy: -1,
+                       timestamp: now.addingTimeInterval(-age))
+        }
+        let fixes = [fix(accuracy: 3, age: 3600), fix(accuracy: -1, age: 1),
+                     fix(accuracy: 12, age: 4), fix(accuracy: 240, age: 1)]
+        XCTAssertEqual(IOSLocationProvider.bestRecentFix(in: fixes, now: now)?.horizontalAccuracy, 12)
+        XCTAssertNil(IOSLocationProvider.bestRecentFix(in: [fix(accuracy: -1, age: 0)], now: now))
+    }
+
+    func testSberReturnsOnlyCurrentAttemptToOriginalWebView() throws {
+        let origin = "https://foodhome.market"
+        let policy = SberAuthPolicy(trustedOrigin: try XCTUnwrap(URL(string: origin)))
+        let attempt = UUID().uuidString.lowercased()
+        let token = String(repeating: "a", count: 43)
+        let fields = "response_type=code&client_id=test&redirect_uri=https%3A%2F%2Ffoodhome.market%2Fauth%2Fsber%2Fcallback&scope=openid+mobile&state=\(token)&nonce=\(token)&login_hint=70000000000&code_challenge=\(token)&code_challenge_method=S256"
+        let auth = "https://id.sber.ru/CSAFront/oidc/authorize.do?\(fields)"
+        XCTAssertNotNil(policy.authorizationURL(attemptID: attempt, raw: auth))
+        XCTAssertNil(policy.authorizationURL(attemptID: attempt, raw: auth + "&state=another"))
+        XCTAssertNil(policy.authorizationURL(attemptID: attempt, raw: auth.replacingOccurrences(of: "id.sber.ru", with: "example.org")))
+        let fragment = "attempt_id=\(attempt)&ticket=\(token)"
+        let callback = try XCTUnwrap(URL(string: "market.foodhome.app.auth://sber/return#\(fragment)"))
+        XCTAssertEqual(policy.returnURL(callback: callback, attemptID: attempt)?.absoluteString,
+                       origin + "/auth/sber/app-return#" + fragment)
+        XCTAssertNil(policy.returnURL(callback: callback, attemptID: UUID().uuidString.lowercased()))
     }
 
     func testSensitiveRateLimitComesFromManifestAndExpiresByInjectedClock() {

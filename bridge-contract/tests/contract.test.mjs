@@ -149,7 +149,7 @@ test("manifest defines one acknowledged native-event transport", () => {
 });
 
 test("artifact version and additive bridge major stay synchronized", () => {
-  assert.equal(manifest.contractVersion, "1.12.0");
+  assert.equal(manifest.contractVersion, "1.13.0");
   assert.equal(manifest.contractVersion, packageMetadata.version);
   assert.equal(packageLock.version, packageMetadata.version);
   assert.equal(packageLock.packages[""].version, packageMetadata.version);
@@ -158,7 +158,7 @@ test("artifact version and additive bridge major stay synchronized", () => {
 });
 
 test("Android push is platform-specific and never advertised by an unconfigured binary manifest", () => {
-  assert.deepEqual(manifest.platformBuiltInCapabilities, { android: ["managePush", "openNotificationSettings", "startSberAuth"], ios: [] });
+  assert.deepEqual(manifest.platformBuiltInCapabilities, { android: ["managePush", "openNotificationSettings", "startSberAuth"], ios: ["startSberAuth"] });
   assert.equal(manifest.advertisedCapabilities.includes("managePush"), false);
   assert.equal(manifest.compiledCapabilities.includes("managePush"), false);
   assert.ok(schemas.handshake.properties.capabilities.items.enum.includes("managePush"));
