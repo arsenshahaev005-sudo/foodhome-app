@@ -1,0 +1,89 @@
+name: Internal TestFlight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodhome-internal-testflight
+  cancel-in-progress: false
+
+env:
+  APP_BUNDLE_ID: market.foodhome.app
+
+jobs:
+  upload:
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    environment: testflight
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    outputs:
+      version: ${{ steps.archive.outputs.version }}
+      build: ${{ steps.archive.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Sign and archive Food Home for iPhone
+        id: archive
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: bash scripts/archive-testflight.sh
+      - name: Upload the internal-only build
+        env:
+          ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          signing_dir="$RUNNER_TEMP/foodhome-testflight"
+          key_file="$signing_dir/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_PRIVATE_KEY" | tr -d '\r' > "$key_file"
+          unset ASC_PRIVATE_KEY
+          openssl pkey -in "$key_file" -noout
+          xcodebuild -exportArchive \
+            -archivePath "$signing_dir/FoodHome.xcarchive" \
+            -exportPath "$signing_dir/export" \
+            -exportOptionsPlist "$signing_dir/ExportOptions.plist" \
+            -authenticationKeyPath "$key_file" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Remove temporary signing files
+        if: always()
+        env:
+          PROFILE_UUID: ${{ steps.archive.outputs.profile_uuid }}
+        run: |
+          signing_dir="$RUNNER_TEMP/foodhome-testflight"
+          if [[ -f "$signing_dir/distribution.keychain-db" ]]; then
+            security delete-keychain "$signing_dir/distribution.keychain-db"
+          fi
+          if [[ "$PROFILE_UUID" =~ ^[0-9A-Fa-f-]{36}$ ]]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          fi
+          rm -rf -- "$signing_dir"
+
+  confirm:
+    name: Confirm internal build in App Store Connect
+    needs: upload
+    runs-on: ubuntu-24.04
+    environment: testflight
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Wait for Apple to process this version and build
+        env:
+          ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APP_VERSION: ${{ needs.upload.outputs.version }}
+          BUILD_NUMBER: ${{ needs.upload.outputs.build }}
+        run: node scripts/confirm-testflight-build.mjs
