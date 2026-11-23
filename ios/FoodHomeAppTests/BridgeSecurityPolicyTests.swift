@@ -1,4 +1,5 @@
 import XCTest
+import JavaScriptCore
 @testable import FoodHomeApp
 
 final class BridgeSecurityPolicyTests: XCTestCase {
@@ -153,6 +154,25 @@ final class BridgeSecurityPolicyTests: XCTestCase {
         XCTAssertTrue(script.contains("foodhome:bridge-ready"))
         XCTAssertTrue(script.contains(#""capabilities":[]"#))
         XCTAssertFalse(script.contains(#""capabilities":["share"]"#))
+    }
+
+    func testSberRequiresAWebPageThatSupportsTheIOSReturn() throws {
+        let script = try XCTUnwrap(BridgeHandshakeScript.create(
+            manifest: try XCTUnwrap(BridgeManifest.load()), appVersion: "0.1.0", buildNumber: "3.1", platform: "ios"
+        ))
+        for supportsReturn in [false, true] {
+            let js = try XCTUnwrap(JSContext())
+            js.evaluateScript("""
+                const document = {documentElement: {getAttribute: key => key === 'data-foodhome-sber-ios-return' ? \(supportsReturn ? "'1'" : "null") : null}};
+                function CustomEvent(name, args) { this.detail = args.detail; }
+                var result;
+                const window = {dispatchEvent: event => { result = event.detail; }};
+                """)
+            js.evaluateScript(script)
+            XCTAssertNil(js.exception)
+            XCTAssertEqual(js.evaluateScript("result.capabilities.includes('startSberAuth')")?.toBool(), supportsReturn)
+            XCTAssertEqual(js.evaluateScript("result.capabilities.includes('requestLocation')")?.toBool(), true)
+        }
     }
 
     func testNativeModeBootstrapIsExactOriginMainFrameAndMinimal() throws {

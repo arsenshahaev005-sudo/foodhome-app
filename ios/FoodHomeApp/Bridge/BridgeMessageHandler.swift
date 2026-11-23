@@ -200,6 +200,15 @@ enum BridgeHandshakeScript {
         else {
             return nil
         }
-        return "window.dispatchEvent(new CustomEvent('\(manifest.handshake.eventName)',{detail:\(json)}));"
+        // Earlier hosted pages always request an Android handoff when they see this capability.
+        return """
+        (() => {
+          const detail = \(json);
+          if (detail.platform === 'ios' && document.documentElement.getAttribute('data-foodhome-sber-ios-return') !== '1') {
+            detail.capabilities = detail.capabilities.filter(method => method !== 'startSberAuth');
+          }
+          window.dispatchEvent(new CustomEvent('\(manifest.handshake.eventName)', {detail}));
+        })();
+        """
     }
 }
