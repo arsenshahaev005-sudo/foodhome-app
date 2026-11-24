@@ -21,7 +21,7 @@ final class FoodHomeAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        // The next foreground registration retries without exposing provider errors to the website.
+        IOSPushRegistration.shared.registrationFailed()
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,

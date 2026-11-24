@@ -37,8 +37,74 @@ struct PushNavigationInbox {
     }
 }
 
+/// A device token identifies the installation. Only a server receipt identifies its owner.
+struct APNsDeviceRegistration {
+    private enum State {
+        case idle, requesting(Date), ready(Data), failed(Date)
+    }
+
+    private var state: State = .idle
+
+    var token: Data? {
+        if case let .ready(value) = state { return value }
+        return nil
+    }
+
+    mutating func begin(now: Date = Date()) -> Bool {
+        switch state {
+        case .ready: return false
+        case let .requesting(retryAt), let .failed(retryAt):
+            guard now >= retryAt else { return false }
+        case .idle: break
+        }
+        state = .requesting(now.addingTimeInterval(30))
+        return true
+    }
+
+    mutating func receive(_ value: Data) -> Bool {
+        if case .idle = state { return false }
+        guard !value.isEmpty, value.count <= 2048, token != value else { return false }
+        state = .ready(value)
+        return true
+    }
+
+    mutating func fail(now: Date = Date()) -> Bool {
+        guard case .requesting = state else { return false }
+        state = .failed(now.addingTimeInterval(30))
+        return true
+    }
+
+    mutating func clear(couldReceiveForOldOwner: Bool, stopRegistration: Bool = false) -> Bool {
+        // Older websites clear before every attempt until the first bind receipt. Preserve
+        // an unbound installation's in-memory token so a late callback can actually be used.
+        guard couldReceiveForOldOwner || stopRegistration else { return false }
+        if case .idle = state { return couldReceiveForOldOwner }
+        state = .idle
+        return true
+    }
+
+    func status(bindingID: String?, tokenDigest: String?) -> String {
+        guard let token else { return "unavailable" }
+        if bindingID != nil, tokenDigest == PushPayloadPolicy.digest(token) { return "enabled" }
+        return "needsBinding"
+    }
+}
+
 enum PushPayloadPolicy {
     static let origin = URL(string: "https://foodhome.market")!
+
+    static func installationEndpoint(for action: String) -> URL? {
+        guard action == "bind" || action == "revoke" else { return nil }
+        return URL(string: "/api/v1/mobile/installations/\(action)/", relativeTo: origin)?.absoluteURL
+    }
+
+    static func acceptsBindingReceipt(_ receipt: [String: Any]?, bindingID: String,
+                                      permission: NotificationAuthorizationStatus) -> Bool {
+        receipt?["bindingId"] as? String == bindingID && receipt?["platform"] as? String == "ios" &&
+            receipt?["provider"] as? String == "apns" && receipt?["environment"] as? String == "production" &&
+            receipt?["notificationStatus"] as? String == permission.rawValue &&
+            receipt?["revokedAt"] is NSNull && receipt?["invalidatedAt"] is NSNull
+    }
 
     static func timestamp(_ text: String) -> Date? {
         guard text.count <= 40 else { return nil }
