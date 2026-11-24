@@ -1,6 +1,7 @@
 name: iOS
 
 on:
+  workflow_dispatch: {}
   # Required checks must run on every PR, including documentation-only changes.
   pull_request: {}
   push:
@@ -15,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'screenshots' || 'checks' }}
   cancel-in-progress: true
 
 jobs:
@@ -55,8 +56,12 @@ jobs:
             exit 1
           fi
           # Create our own device: pre-created devices may be absent on fresh runners.
+          device_type="$IOS_SIMULATOR_DEVICE_TYPE"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            device_type=com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max
+          fi
           simulator_udid=$(xcrun simctl create "FoodHome-CI-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-            "$IOS_SIMULATOR_DEVICE_TYPE" "$IOS_SIMULATOR_RUNTIME")
+            "$device_type" "$IOS_SIMULATOR_RUNTIME")
           if [[ ! "$simulator_udid" =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]]; then
             echo "::error::simctl did not return a valid simulator identifier"
             exit 1
@@ -75,6 +80,7 @@ jobs:
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=$SIMULATOR_UDID"
           -parallel-testing-enabled NO
+          -skip-testing:FoodHomeAppUITests/AppStoreScreenshots
           CODE_SIGNING_ALLOWED=NO
           test
       - name: Build unsigned Release for simulator
@@ -87,3 +93,34 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
           build
+      - name: Capture the Russian catalog and dish in the Release app
+        if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: 10
+        shell: bash
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+          TEST_RUNNER_FOODHOME_CAPTURE_STORE_SCREENSHOTS: "1"
+        run: |
+          set -euo pipefail
+          xcrun simctl ui "$SIMULATOR_UDID" appearance light
+          xcrun simctl status_bar "$SIMULATOR_UDID" override --time 9:41 \
+            --batteryState discharging --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          xcrun simctl spawn "$SIMULATOR_UDID" launchctl setenv FOODHOME_CAPTURE_STORE_SCREENSHOTS 1
+          xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp \
+            -configuration Release -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -testLanguage ru -testRegion RU -parallel-testing-enabled NO \
+            -only-testing:FoodHomeAppUITests/AppStoreScreenshots/testGuestCatalogAndDish \
+            -resultBundlePath "$RUNNER_TEMP/store.xcresult" \
+            ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO test
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/store.xcresult" \
+            --output-path "$RUNNER_TEMP/store-captures"
+          python3 scripts/export-store-screenshots.py "$RUNNER_TEMP/store-captures" "$RUNNER_TEMP/app-store-ru"
+      - name: Save App Store screenshots for review
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: app-store-ru-iphone-16-pro-max-${{ github.sha }}
+          path: ${{ runner.temp }}/app-store-ru/*.jpg
+          if-no-files-found: error
+          retention-days: 14
