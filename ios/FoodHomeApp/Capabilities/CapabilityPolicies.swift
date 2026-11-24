@@ -62,6 +62,17 @@ struct BridgePayloadPolicy {
             guard payload.count == 2, let attempt = payload["attemptId"] as? String,
                   let url = payload["url"] as? String else { return false }
             return SberAuthPolicy(trustedOrigin: trustedOrigin).authorizationURL(attemptID: attempt, raw: url) != nil
+        case "managePush":
+            return PushPayloadPolicy.validAction(payload)
+        case "openNotificationSettings":
+            return payload.isEmpty
+        case "manageOrderActivity":
+            if payload["action"] as? String == "clear" { return payload.count == 1 }
+            guard payload.count == 3, payload["action"] as? String == "sync",
+                  let order = payload["orderId"] as? String, let id = UUID(uuidString: order),
+                  id.uuidString.lowercased() == order.lowercased(),
+                  let grant = payload["grant"] as? String, grant.utf8.count <= 1024 else { return false }
+            return PushPayloadPolicy.matches(grant, "[A-Za-z0-9._:=-]+")
         case "share":
             guard payload.count <= 3,
                   optionalStringHasValidType(payload, key: "title"),

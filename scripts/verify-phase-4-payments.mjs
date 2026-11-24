@@ -13,7 +13,7 @@ const forbidText = (content, forbidden, file) => {
 
 const manifestPath = "bridge-contract/manifest.json";
 const manifest = JSON.parse(read(manifestPath));
-assert.equal(manifest.contractVersion, "1.13.0");
+assert.equal(manifest.contractVersion, "1.14.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.ok(manifest.builtInCapabilities.includes("openPayment"));
 assert.equal(manifest.advertisedCapabilities.includes("openPayment"), false);
@@ -135,7 +135,10 @@ requireText(iosWebView, "only ackNativeEvent removes it", iosWebViewPath);
 const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);
 forbidText(iosProject, "com.apple.developer.associated-domains", iosProjectPath);
-forbidText(iosProject, "CODE_SIGN_ENTITLEMENTS", iosProjectPath);
+requireText(iosProject, "CODE_SIGN_ENTITLEMENTS = FoodHomeApp/FoodHomeApp.entitlements", iosProjectPath);
+const entitlements = read("ios/FoodHomeApp/FoodHomeApp.entitlements");
+requireText(entitlements, "<key>aps-environment</key>", "FoodHomeApp.entitlements");
+forbidText(entitlements, "com.apple.developer.associated-domains", "FoodHomeApp.entitlements");
 for (const file of [
   "PaymentModels.swift",
   "PaymentLaunchPolicy.swift",

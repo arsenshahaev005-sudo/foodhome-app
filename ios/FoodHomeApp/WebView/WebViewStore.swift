@@ -190,11 +190,27 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
         return offerDeepLink(url)
     }
 
+    func deliverPendingPush() {
+        guard trustedDocumentReady, let route = IOSPushRegistration.shared.takeRoute() else { return }
+        offerPushRoute(route)
+    }
+
+    func pushStateChanged(resumed: Bool = false) {
+        guard trustedDocumentReady else { return }
+        let event = resumed ? "appResumed" : "permissionChanged"
+        let script = "window.dispatchEvent(new CustomEvent('foodhome:native-event',{detail:{protocol:'foodhome.bridge',version:1,name:'\(event)'}}))"
+        webView.evaluateJavaScript(script)
+    }
+
     func sceneBecameActive() {
+        IOSPushRegistration.shared.resume()
+        LiveOrderCoordinator.shared.resume()
+        pushStateChanged(resumed: true)
         paymentReturnRouter?.sceneBecameActive()
     }
 
     func sceneLeftForeground() {
+        IOSPushRegistration.shared.suspend()
         paymentReturnRouter?.sceneLeftForeground()
     }
 
@@ -524,12 +540,14 @@ extension WebViewStore: WKNavigationDelegate {
 
         guard let navigationAttachment, let finishedDocument else { return }
         webView.evaluateJavaScript(script) { [weak self, weak webView] _, _ in
-            guard let self, let webView, self.webView === webView else { return }
+            guard let self, let webView, self.webView === webView,
+                  self.documentAttachment == finishedDocument, self.navigationAttachment == navigationAttachment else { return }
             self.navigationCoordinator.markTrustedDocumentReady(
                 navigationAttachment,
                 document: finishedDocument
             )
             self.trustedDocumentReady = true
+            self.deliverPendingPush()
             self.dispatchPendingNativeEvent()
         }
     }

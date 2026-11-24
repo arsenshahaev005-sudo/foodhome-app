@@ -91,7 +91,7 @@ struct BridgeManifest: Decodable, Sendable {
     private let sharedAdvertised: Set<String>
     private let platformBuiltInCapabilities: [String: Set<String>]?
     private var iosCapabilities: Set<String> {
-        (platformBuiltInCapabilities?["ios"] ?? []).intersection(["startSberAuth"]).intersection(methods)
+        (platformBuiltInCapabilities?["ios"] ?? []).intersection(["startSberAuth", "managePush", "openNotificationSettings", "manageOrderActivity"]).intersection(methods)
     }
     var compiledCapabilities: Set<String> { sharedCompiled.union(iosCapabilities) }
     var builtInCapabilities: Set<String> { sharedBuiltIn.union(iosCapabilities) }

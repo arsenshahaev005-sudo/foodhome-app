@@ -35,6 +35,12 @@ final class IOSNotificationCoordinator {
         }
     }
 
+    func status() async -> NotificationAuthorizationStatus {
+        await withCheckedContinuation { continuation in
+            authorizationStatus { continuation.resume(returning: $0) }
+        }
+    }
+
     func requestAuthorization(
         completion: @escaping (NotificationAuthorizationStatus) -> Void
     ) {
@@ -46,15 +52,5 @@ final class IOSNotificationCoordinator {
                 self?.authorizationStatus(completion: completion)
             }
         }
-    }
-}
-
-protocol PushTokenSink {
-    func receive(_ token: SensitivePushToken)
-}
-
-struct DisabledPushTokenSink: PushTokenSink {
-    func receive(_ token: SensitivePushToken) {
-        // Intentionally disabled until the accepted MobileInstallation binding contract exists.
     }
 }

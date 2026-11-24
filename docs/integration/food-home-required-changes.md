@@ -2,11 +2,9 @@
 
 This public document records only the ownership boundaries referenced by repository verification. It does not define production endpoints, credentials, provider configuration, or delivery status.
 
-The current local candidate targets bridge artifact `1.13.0` (major1). The existing
-food-home frontend archive remains `1.7.0`; its source and checksums are in the
-[published source handoff](../releases/foodhome-bridge-contract-1.7.0.md).
-Publish and pin the accepted new source before production activation. Historical
-provenance must not be reused for the 1.11.0 candidate.
+The current iOS app and web client use bridge artifact `1.14.0` (major 1).
+The source checksum manifest is [in the mobile repository](../releases/foodhome-bridge-contract-1.14.0.sha256).
+The web release verifies the vendored archive against the matching immutable Git tree.
 Server authorization and product behavior remain web-authoritative.
 
 Android administrative broadcasts and buyer notifications require separate exact
