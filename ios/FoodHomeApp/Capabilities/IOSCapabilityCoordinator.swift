@@ -79,6 +79,10 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
             IOSPushRegistration.shared.dispatch(request.payload, origin: trustedOrigin,
                                                 bridgeVersion: manifest.contractVersion, completion: reportingCompletion)
         case "manageOrderActivity":
+            if request.payload["action"] as? String == "sync", !AppEnvironmentResolver.productionPushAvailable {
+                reportingCompletion(.success(["capability": request.method, "status": "unavailable"]))
+                return
+            }
             LiveOrderCoordinator.shared.dispatch(payload: request.payload, origin: trustedOrigin, completion: reportingCompletion)
         case "openNotificationSettings":
             guard presenterProvider?()?.viewIfLoaded?.window != nil,

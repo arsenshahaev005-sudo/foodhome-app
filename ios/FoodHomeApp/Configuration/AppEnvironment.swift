@@ -7,6 +7,10 @@ struct AppEnvironment: Equatable, Sendable {
 
 enum AppEnvironmentResolver {
     static let productionOrigin = URL(string: "https://foodhome.market")!
+    static var productionPushAvailable: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "FoodHomeAPSEnvironment") as? String == "production"
+    }
+
     private static let localDebugHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]
 
     static func current() -> AppEnvironment {

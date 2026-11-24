@@ -203,8 +203,10 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
     }
 
     func sceneBecameActive() {
-        IOSPushRegistration.shared.resume()
-        LiveOrderCoordinator.shared.resume()
+        if AppEnvironmentResolver.productionPushAvailable {
+            IOSPushRegistration.shared.resume()
+            LiveOrderCoordinator.shared.resume()
+        }
         pushStateChanged(resumed: true)
         paymentReturnRouter?.sceneBecameActive()
     }

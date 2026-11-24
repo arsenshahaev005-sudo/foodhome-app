@@ -99,6 +99,11 @@ requireText(iosProject, "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription", ios
 requireText(iosProject, "CODE_SIGN_ENTITLEMENTS = FoodHomeApp/FoodHomeApp.entitlements", iosProjectPath);
 const entitlements = read("ios/FoodHomeApp/FoodHomeApp.entitlements");
 requireText(entitlements, "<key>aps-environment</key>", "FoodHomeApp.entitlements");
+requireText(read("ios/FoodHomeApp/Info.plist"), "<key>FoodHomeAPSEnvironment</key>", "Info.plist");
+requireText(iosProject, "FOODHOME_APS_ENVIRONMENT = development", iosProjectPath);
+requireText(iosProject, "FOODHOME_APS_ENVIRONMENT = production", iosProjectPath);
+requireText(entitlements, "$(FOODHOME_APS_ENVIRONMENT)", "FoodHomeApp.entitlements");
+requireText(read("ios/FoodHomeApp/Info.plist"), "$(FOODHOME_APS_ENVIRONMENT)", "Info.plist");
 forbidText(entitlements, "com.apple.developer.associated-domains", "FoodHomeApp.entitlements");
 forbidText(iosProject, "com.apple.developer.associated-domains", iosProjectPath);
 

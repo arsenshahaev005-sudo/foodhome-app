@@ -59,7 +59,7 @@ final class IOSPushRegistration {
     }
 
     func receive(_ value: Data) {
-        guard !value.isEmpty, value.count <= 2048, value != token else { return }
+        guard AppEnvironmentResolver.productionPushAvailable, !value.isEmpty, value.count <= 2048, value != token else { return }
         token = value
         if let old = state.tokenDigest, old != PushPayloadPolicy.digest(value) {
             state.bindingID = nil
@@ -85,7 +85,8 @@ final class IOSPushRegistration {
     }
 
     func parsed(_ info: [AnyHashable: Any]) -> PushOpen? {
-        PushPayloadPolicy.parse(info, bindingID: state.bindingID)
+        guard AppEnvironmentResolver.productionPushAvailable else { return nil }
+        return PushPayloadPolicy.parse(info, bindingID: state.bindingID)
     }
 
     func queue(_ open: PushOpen) {
@@ -128,6 +129,11 @@ final class IOSPushRegistration {
             return
         }
         if action == "revoke" { _ = clear() }
+        guard AppEnvironmentResolver.productionPushAvailable else {
+            if action == "status" { completion(result("unavailable")) }
+            else { completion(.failure(code: "CAPABILITY_UNAVAILABLE", message: "Production push registration is unavailable")) }
+            return
+        }
         guard queuedRequests < 8 else {
             completion(.failure(code: "RATE_LIMITED", message: "Notification request limit reached", retryable: true))
             return

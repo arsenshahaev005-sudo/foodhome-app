@@ -46,7 +46,7 @@ final class IOSNotificationCoordinator {
     ) {
         center.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, _ in
             DispatchQueue.main.async {
-                if granted {
+                if granted && AppEnvironmentResolver.productionPushAvailable {
                     UIApplication.shared.registerForRemoteNotifications()
                 }
                 self?.authorizationStatus(completion: completion)
