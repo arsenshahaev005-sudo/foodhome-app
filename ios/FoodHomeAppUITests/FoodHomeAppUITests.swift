@@ -129,8 +129,11 @@ final class AppStoreScreenshots: XCTestCase {
     private func attachScreen(_ name: String) throws {
         let screenshot = XCUIScreen.main.screenshot()
         let cgImage = try XCTUnwrap(screenshot.image.cgImage)
-        XCTAssertEqual(cgImage.width, 1320)
-        XCTAssertEqual(cgImage.height, 2868)
+        let display = try XCTUnwrap(ProcessInfo.processInfo.environment["FOODHOME_STORE_DISPLAY"])
+        let sizes = ["medium": (width: 1206, height: 2622), "large": (width: 1320, height: 2868)]
+        let size = try XCTUnwrap(sizes[display], "Unknown iPhone screenshot display")
+        XCTAssertEqual(cgImage.width, size.width)
+        XCTAssertEqual(cgImage.height, size.height)
         let attachment = XCTAttachment(data: screenshot.pngRepresentation, uniformTypeIdentifier: "public.png")
         attachment.name = name
         attachment.lifetime = .keepAlways

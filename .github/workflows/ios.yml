@@ -1,7 +1,16 @@
 name: iOS
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      display:
+        description: iPhone Dynamic Island display for App Store screenshots
+        type: choice
+        required: true
+        default: large
+        options:
+          - medium
+          - large
   # Required checks must run on every PR, including documentation-only changes.
   pull_request: {}
   push:
@@ -10,13 +19,15 @@ on:
       - "ios/**"
       - "bridge-contract/manifest.json"
       - "scripts/verify-phase-5-hardening.mjs"
+      - "scripts/export-store-screenshots.py"
+      - "scripts/test_store_screenshots.py"
       - ".github/workflows/ios.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'screenshots' || 'checks' }}
+  group: ios-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && (inputs.display || 'large') || 'checks' }}
   cancel-in-progress: true
 
 jobs:
@@ -29,10 +40,13 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       IOS_SIMULATOR_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-26-2
       IOS_SIMULATOR_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro
+      STORE_DISPLAY: ${{ inputs.display || 'large' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Inspect Xcode project
         run: plutil -lint ios/FoodHomeApp.xcodeproj/project.pbxproj
+      - name: Verify App Store screenshot dimensions
+        run: python3 -B -m unittest discover -s scripts -p test_store_screenshots.py
       - name: Prepare pinned Xcode and iOS simulator
         id: simulator
         timeout-minutes: 8
@@ -58,7 +72,11 @@ jobs:
           # Create our own device: pre-created devices may be absent on fresh runners.
           device_type="$IOS_SIMULATOR_DEVICE_TYPE"
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            device_type=com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max
+            case "$STORE_DISPLAY" in
+              medium) device_type=com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro ;;
+              large) device_type=com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max ;;
+              *) echo "::error::Unsupported screenshot display"; exit 1 ;;
+            esac
           fi
           simulator_udid=$(xcrun simctl create "FoodHome-CI-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             "$device_type" "$IOS_SIMULATOR_RUNTIME")
@@ -100,12 +118,14 @@ jobs:
         env:
           SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
           TEST_RUNNER_FOODHOME_CAPTURE_STORE_SCREENSHOTS: "1"
+          TEST_RUNNER_FOODHOME_STORE_DISPLAY: ${{ inputs.display || 'large' }}
         run: |
           set -euo pipefail
           xcrun simctl ui "$SIMULATOR_UDID" appearance light
           xcrun simctl status_bar "$SIMULATOR_UDID" override --time 9:41 \
             --batteryState discharging --batteryLevel 100 --wifiBars 3 --cellularBars 4
           xcrun simctl spawn "$SIMULATOR_UDID" launchctl setenv FOODHOME_CAPTURE_STORE_SCREENSHOTS 1
+          xcrun simctl spawn "$SIMULATOR_UDID" launchctl setenv FOODHOME_STORE_DISPLAY "$STORE_DISPLAY"
           xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp \
             -configuration Release -sdk iphonesimulator \
             -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
@@ -115,12 +135,13 @@ jobs:
             ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO test
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/store.xcresult" \
             --output-path "$RUNNER_TEMP/store-captures"
-          python3 scripts/export-store-screenshots.py "$RUNNER_TEMP/store-captures" "$RUNNER_TEMP/app-store-ru"
+          python3 scripts/export-store-screenshots.py --display "$STORE_DISPLAY" \
+            "$RUNNER_TEMP/store-captures" "$RUNNER_TEMP/app-store-ru"
       - name: Save App Store screenshots for review
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: app-store-ru-iphone-16-pro-max-${{ github.sha }}
+          name: app-store-ru-iphone-16-${{ inputs.display || 'large' }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/app-store-ru/*.jpg
           if-no-files-found: error
           retention-days: 14
