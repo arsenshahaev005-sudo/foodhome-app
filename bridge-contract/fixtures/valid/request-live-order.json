@@ -1,0 +1,11 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "order-1",
+  "method": "manageOrderActivity",
+  "payload": {
+    "action": "sync",
+    "orderId": "1c6e36bc-3795-4856-81f7-ceb152054a16",
+    "grant": "signed.single-order:grant"
+  }
+}

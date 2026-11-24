@@ -8,6 +8,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
     private let sberSession: IOSSberAuthSession
     private let hasRecentAuthUserAction: () -> Bool
 
+    private let trustedOrigin: URL
     private let manifest: BridgeManifest
     private let sharePolicy: FoodHomeSharePolicy
     private let locationProvider: IOSLocationProvider
@@ -27,6 +28,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         telemetry: TelemetryReporter? = nil
     ) {
         self.manifest = manifest
+        self.trustedOrigin = trustedOrigin
         self.sberSession = IOSSberAuthSession(trustedOrigin: trustedOrigin)
         self.hasRecentAuthUserAction = hasRecentAuthUserAction
         self.sharePolicy = FoodHomeSharePolicy(trustedOrigin: trustedOrigin)
@@ -70,6 +72,29 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
                 reportingCompletion(.success(["capability": request.method, "status": "presented"]))
             } else {
                 reportingCompletion(.failure(code: "LAUNCH_FAILED", message: "Authentication browser could not be opened"))
+            }
+        case "managePush":
+            if request.payload["action"] as? String == "bind",
+               !enforceRateLimit(method: request.method, completion: reportingCompletion) { return }
+            IOSPushRegistration.shared.dispatch(request.payload, origin: trustedOrigin,
+                                                bridgeVersion: manifest.contractVersion, completion: reportingCompletion)
+        case "manageOrderActivity":
+            if request.payload["action"] as? String == "sync", !AppEnvironmentResolver.productionPushAvailable {
+                reportingCompletion(.success(["capability": request.method, "status": "unavailable"]))
+                return
+            }
+            LiveOrderCoordinator.shared.dispatch(payload: request.payload, origin: trustedOrigin, completion: reportingCompletion)
+        case "openNotificationSettings":
+            guard presenterProvider?()?.viewIfLoaded?.window != nil,
+                  UIApplication.shared.applicationState == .active else { reportingCompletion(unavailable()); return }
+            guard enforceRateLimit(method: request.method, completion: reportingCompletion) else { return }
+            let destination: String
+            if #available(iOS 16.0, *) { destination = UIApplication.openNotificationSettingsURLString }
+            else { destination = UIApplication.openSettingsURLString }
+            guard let url = URL(string: destination) else { reportingCompletion(unavailable()); return }
+            UIApplication.shared.open(url) { opened in
+                reportingCompletion(opened ? .success(["capability": "openNotificationSettings", "status": "presented"])
+                    : .failure(code: "LAUNCH_FAILED", message: "Settings could not be opened"))
             }
         case "share":
             dispatchShare(request, completion: reportingCompletion)

@@ -28,7 +28,7 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
 
     func testBundledManifestBuildsPaymentButDoesNotAdvertiseIt() throws {
         let value = try XCTUnwrap(BridgeManifest.load())
-        XCTAssertEqual(value.contractVersion, "1.13.0")
+        XCTAssertEqual(value.contractVersion, "1.14.0")
         XCTAssertEqual(value.limits.maxJsonDepth, 12)
         XCTAssertEqual(value.limits.maxJsonNodes, 512)
         XCTAssertEqual(
@@ -40,6 +40,7 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
             [
                 "share",
                 "startSberAuth",
+                "managePush", "openNotificationSettings", "manageOrderActivity",
                 "requestLocation",
                 "getNotificationStatus",
                 "requestNotificationPermission",

@@ -101,9 +101,11 @@ struct ContentView: View {
                 break
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .foodHomePushRoute)) { event in
-            guard let route = event.object as? URL else { return }
-            store.offerPushRoute(route)
+        .onReceive(NotificationCenter.default.publisher(for: .foodHomePushRoute)) { _ in
+            store.deliverPendingPush()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .foodHomePushStateChanged)) { _ in
+            store.pushStateChanged()
         }
     }
 }

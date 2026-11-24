@@ -3,6 +3,9 @@ import { appendFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const { ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY, APP_BUNDLE_ID, APP_VERSION, BUILD_NUMBER } = process.env;
+const audiences = { internal: 'INTERNAL_ONLY', 'app-store': 'APP_STORE_ELIGIBLE' };
+const expectedAudience = audiences[process.env.DISTRIBUTION_AUDIENCE ?? 'internal'];
+if (!expectedAudience) throw new Error('Unknown iOS distribution audience.');
 const base64url = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
 
 function token() {
@@ -66,9 +69,9 @@ while (Date.now() < deadline) {
   if (state !== previous) console.log('Apple processing state:', state);
   previous = state;
   if (state === 'VALID') {
-    if (build.attributes.buildAudienceType !== 'INTERNAL_ONLY') throw new Error('Unexpected TestFlight audience.');
+    if (build.attributes.buildAudienceType !== expectedAudience) throw new Error('Unexpected build audience.');
     const link = 'https://appstoreconnect.apple.com/apps/' + appId + '/testflight/ios/' + build.id;
-    const message = 'Food Home ' + APP_VERSION + ' (' + BUILD_NUMBER + ') — ' + state + ', INTERNAL_ONLY. ' +
+    const message = 'Food Home ' + APP_VERSION + ' (' + BUILD_NUMBER + ') — ' + state + ', ' + expectedAudience + '. ' +
       'Internal testing status: ' + (build.internalState ?? 'pending') + '. ' + link;
     console.log(message);
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, message + '\n');

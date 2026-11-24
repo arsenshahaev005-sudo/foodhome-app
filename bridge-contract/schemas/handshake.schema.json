@@ -51,6 +51,7 @@
         "enum": [
           "openNotificationSettings",
           "managePush",
+          "manageOrderActivity",
           "share",
           "requestLocation",
           "openExternal",
@@ -70,6 +71,7 @@
         "enum": [
           "openNotificationSettings",
           "managePush",
+          "manageOrderActivity",
           "share",
           "requestLocation",
           "openExternal",

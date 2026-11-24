@@ -13,7 +13,7 @@ const forbidText = (content, forbidden, file) => {
 };
 
 const manifest = JSON.parse(read("bridge-contract/manifest.json"));
-assert.equal(manifest.contractVersion, "1.13.0");
+assert.equal(manifest.contractVersion, "1.14.0");
 assert.equal(manifest.bridgeMajor, 1);
 assert.deepEqual(manifest.phase0Capabilities, []);
 assert.deepEqual(manifest.compiledCapabilities, [
@@ -96,7 +96,15 @@ const iosProjectPath = "ios/FoodHomeApp.xcodeproj/project.pbxproj";
 const iosProject = read(iosProjectPath);
 requireText(iosProject, "INFOPLIST_KEY_NSCameraUsageDescription", iosProjectPath);
 requireText(iosProject, "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription", iosProjectPath);
-forbidText(iosProject, "CODE_SIGN_ENTITLEMENTS", iosProjectPath);
+requireText(iosProject, "CODE_SIGN_ENTITLEMENTS = FoodHomeApp/FoodHomeApp.entitlements", iosProjectPath);
+const entitlements = read("ios/FoodHomeApp/FoodHomeApp.entitlements");
+requireText(entitlements, "<key>aps-environment</key>", "FoodHomeApp.entitlements");
+requireText(read("ios/FoodHomeApp/Info.plist"), "<key>FoodHomeAPSEnvironment</key>", "Info.plist");
+requireText(iosProject, "FOODHOME_APS_ENVIRONMENT = development", iosProjectPath);
+requireText(iosProject, "FOODHOME_APS_ENVIRONMENT = production", iosProjectPath);
+requireText(entitlements, "$(FOODHOME_APS_ENVIRONMENT)", "FoodHomeApp.entitlements");
+requireText(read("ios/FoodHomeApp/Info.plist"), "$(FOODHOME_APS_ENVIRONMENT)", "Info.plist");
+forbidText(entitlements, "com.apple.developer.associated-domains", "FoodHomeApp.entitlements");
 forbidText(iosProject, "com.apple.developer.associated-domains", iosProjectPath);
 
 for (const file of [
@@ -154,7 +162,8 @@ requireText(
 const iosPushPath = "ios/FoodHomeApp/Notifications/FoodHomeAppDelegate.swift";
 const iosPush = read(iosPushPath);
 requireText(iosPush, "didRegisterForRemoteNotificationsWithDeviceToken", iosPushPath);
-requireText(iosPush, "DisabledPushTokenSink", iosPushPath);
+requireText(iosPush, "IOSPushRegistration.shared.receive", iosPushPath);
+forbidText(iosPush, "DisabledPushTokenSink", iosPushPath);
 requireText(iosPush, "foodHomePushRoute", iosPushPath);
 forbidText(iosPush, "print(", iosPushPath);
 
