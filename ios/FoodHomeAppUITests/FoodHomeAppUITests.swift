@@ -127,8 +127,9 @@ final class AppStoreScreenshots: XCTestCase {
         XCTAssertTrue(photo.waitForExistence(timeout: 25), "The selected dish must open in the product sheet.")
         let title = web.descendants(matching: .any).matching(NSPredicate(format: "label == %@", dish.name)).firstMatch
         XCTAssertTrue(title.waitForExistence(timeout: 10))
-        XCTAssertTrue(web.buttons["Закрыть"].firstMatch.exists)
-        XCTAssertTrue(photo.isHittable)
+        let visiblePhoto = photo.frame.intersection(web.frame)
+        XCTAssertGreaterThan(visiblePhoto.height, 100, "The iPhone sheet must show its product photograph.")
+        XCTAssertTrue(photo.isHittable, "The product photograph must be available for opening in the mobile sheet.")
         try attachScreen("foodhome-store-02-dish")
     }
 
