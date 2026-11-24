@@ -13,50 +13,22 @@ grep -q testFlightInternalTestingOnly "$signing_dir/xcode-help.txt" || {
 
 printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 -D > "$signing_dir/distribution.p12"
 printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 -D > "$signing_dir/profile.mobileprovision"
-unset BUILD_CERTIFICATE_BASE64 BUILD_PROVISION_PROFILE_BASE64
-security cms -D -i "$signing_dir/profile.mobileprovision" -o "$signing_dir/profile.plist"
-
-python3 - "$signing_dir" "$APP_BUNDLE_ID" <<'PY'
-import hashlib
-import plistlib
-import sys
-from datetime import datetime, timezone
-from pathlib import Path
-from uuid import UUID
-
-directory = Path(sys.argv[1])
-bundle = sys.argv[2]
-profile = plistlib.loads((directory / "profile.plist").read_bytes())
-team, = profile["TeamIdentifier"]
-certificate, = profile["DeveloperCertificates"]
-entitlements = profile["Entitlements"]
-if (entitlements.get("application-identifier") != f"{team}.{bundle}"
-        or not entitlements.get("beta-reports-active")
-        or entitlements.get("get-task-allow")
-        or profile.get("ProvisionsAllDevices") or "ProvisionedDevices" in profile
-        or profile["ExpirationDate"].replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc)):
-    sys.exit("Expected a current App Store distribution profile for this app.")
-profile_uuid = profile["UUID"]
-if str(UUID(profile_uuid)) != profile_uuid.lower():
-    sys.exit("Expected a hyphenated provisioning profile UUID.")
-# Xcode and security find-identity identify a certificate by its SHA-1 fingerprint.
-options = {
-    "method": "app-store-connect", "destination": "upload", "teamID": team,
-    "signingStyle": "manual", "signingCertificate": hashlib.sha1(certificate).hexdigest().upper(),
-    # Use the exact spelling that Xcode used to sign the archive.
-    "provisioningProfiles": {bundle: profile_uuid}, "manageAppVersionAndBuildNumber": False,
-    "testFlightInternalTestingOnly": True,
-}
-(directory / "ExportOptions.plist").write_bytes(plistlib.dumps(options))
-PY
+printf '%s' "$WIDGET_PROVISION_PROFILE_BASE64" | base64 -D > "$signing_dir/widget.mobileprovision"
+unset BUILD_CERTIFICATE_BASE64 BUILD_PROVISION_PROFILE_BASE64 WIDGET_PROVISION_PROFILE_BASE64
+for component in profile widget; do
+  security cms -D -i "$signing_dir/$component.mobileprovision" -o "$signing_dir/$component.plist"
+done
+python3 scripts/ios_export_options.py "$signing_dir" "$APP_BUNDLE_ID" "$WIDGET_BUNDLE_ID" "$DISTRIBUTION_AUDIENCE"
 
 team=$(plutil -extract teamID raw -o - "$signing_dir/ExportOptions.plist")
 identity=$(plutil -extract signingCertificate raw -o - "$signing_dir/ExportOptions.plist")
 profile_uuid=$(plutil -extract UUID raw -o - "$signing_dir/profile.plist")
-echo "profile_uuid=$profile_uuid" >> "$GITHUB_OUTPUT"
+widget_uuid=$(plutil -extract UUID raw -o - "$signing_dir/widget.plist")
+printf 'profile_uuid=%s\nwidget_profile_uuid=%s\n' "$profile_uuid" "$widget_uuid" >> "$GITHUB_OUTPUT"
 profiles="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 mkdir -p "$profiles"
 install -m 600 "$signing_dir/profile.mobileprovision" "$profiles/$profile_uuid.mobileprovision"
+install -m 600 "$signing_dir/widget.mobileprovision" "$profiles/$widget_uuid.mobileprovision"
 
 keychain="$signing_dir/distribution.keychain-db"
 keychain_password=$(openssl rand -hex 32)
@@ -87,12 +59,22 @@ build="$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
 xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$archive" \
   CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$team" CODE_SIGN_IDENTITY="$identity" \
-  PROVISIONING_PROFILE_SPECIFIER="$profile_uuid" CURRENT_PROJECT_VERSION="$build" archive
+  FOODHOME_APP_PROFILE="$profile_uuid" FOODHOME_WIDGET_PROFILE="$widget_uuid" \
+  CURRENT_PROJECT_VERSION="$build" archive
 
 app="$archive/Products/Applications/FoodHomeApp.app"
+widget="$app/PlugIns/FoodHomeOrderStatus.appex"
+codesign --verify --strict "$widget"
 codesign --verify --strict "$app"
+codesign -d --entitlements - "$app" > "$signing_dir/archived-entitlements.plist"
+[[ "$(plutil -extract aps-environment raw -o - "$signing_dir/archived-entitlements.plist")" == production ]]
+[[ "$(plutil -extract NSSupportsLiveActivities raw -o - "$app/Info.plist")" == true ]]
 [[ "$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")" == "$APP_BUNDLE_ID" ]]
+[[ "$(plutil -extract CFBundleIdentifier raw -o - "$widget/Info.plist")" == "$WIDGET_BUNDLE_ID" ]]
+[[ "$(plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - "$widget/Info.plist")" == com.apple.widgetkit-extension ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$app/Info.plist")" == "$build" ]]
+[[ "$(plutil -extract CFBundleVersion raw -o - "$widget/Info.plist")" == "$build" ]]
 version=$(plutil -extract CFBundleShortVersionString raw -o - "$app/Info.plist")
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$widget/Info.plist")" == "$version" ]]
 printf 'version=%s\nbuild=%s\n' "$version" "$build" >> "$GITHUB_OUTPUT"
-printf 'Archived %s (%s) from %s for internal TestFlight.\n' "$version" "$build" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+printf 'Archived %s (%s) from %s for %s distribution.\n' "$version" "$build" "$GITHUB_SHA" "$DISTRIBUTION_AUDIENCE" >> "$GITHUB_STEP_SUMMARY"
