@@ -69,6 +69,7 @@ codesign --verify --strict "$app"
 codesign -d --entitlements - "$app" > "$signing_dir/archived-entitlements.plist"
 [[ "$(plutil -extract aps-environment raw -o - "$signing_dir/archived-entitlements.plist")" == production ]]
 [[ "$(plutil -extract NSSupportsLiveActivities raw -o - "$app/Info.plist")" == true ]]
+[[ "$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$app/Info.plist")" == false ]]
 [[ "$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")" == "$APP_BUNDLE_ID" ]]
 [[ "$(plutil -extract CFBundleIdentifier raw -o - "$widget/Info.plist")" == "$WIDGET_BUNDLE_ID" ]]
 [[ "$(plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - "$widget/Info.plist")" == com.apple.widgetkit-extension ]]
