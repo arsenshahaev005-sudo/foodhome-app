@@ -1,0 +1,10 @@
+{
+  "protocol": "foodhome.bridge",
+  "version": 1,
+  "requestId": "order-2",
+  "method": "manageOrderActivity",
+  "payload": {
+    "action": "clear",
+    "pushToken": "invalid"
+  }
+}

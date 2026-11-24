@@ -26,6 +26,7 @@
     "method": {
       "enum": [
         "managePush",
+        "manageOrderActivity",
         "share",
         "requestLocation",
         "openExternal",
@@ -44,6 +45,58 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "method": {
+            "const": "manageOrderActivity"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "oneOf": [
+              {
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "clear"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "required": [
+                  "action",
+                  "orderId",
+                  "grant"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "sync"
+                  },
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "grant": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024,
+                    "pattern": "^[A-Za-z0-9._:=-]+$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
