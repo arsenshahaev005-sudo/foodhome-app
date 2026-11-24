@@ -112,6 +112,7 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           build
       - name: Capture the Russian catalog and dish in the Release app
+        id: store_capture
         if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         shell: bash
@@ -132,11 +133,32 @@ jobs:
             -testLanguage ru -testRegion RU -parallel-testing-enabled NO \
             -only-testing:FoodHomeAppUITests/AppStoreScreenshots/testGuestCatalogAndDish \
             -resultBundlePath "$RUNNER_TEMP/store.xcresult" \
-            ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO test
+            ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO test | tee "$RUNNER_TEMP/store-capture.log"
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/store.xcresult" \
             --output-path "$RUNNER_TEMP/store-captures"
           python3 scripts/export-store-screenshots.py --display "$STORE_DISPLAY" \
             "$RUNNER_TEMP/store-captures" "$RUNNER_TEMP/app-store-ru"
+      - name: Collect guest accessibility diagnostics
+        if: failure() && github.event_name == 'workflow_dispatch' && steps.store_capture.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/store-guest-ax.txt"
+          if [[ -f "$RUNNER_TEMP/store-capture.log" ]]; then
+            sed -nE 's/^.*FOODHOME_STORE_AX (stage=(navigation|catalog|dish-card|dish)|(catalog_nav|dishes_heading|catalog_filters|open_links|address_sheet|consent_sheet|dish_photo)=[0-9]+)[[:space:]]*$/\1/p' \
+              "$RUNNER_TEMP/store-capture.log" > "$report"
+          fi
+          if [[ ! -s "$report" ]]; then
+            echo 'The capture did not record a guest accessibility snapshot.' > "$report"
+          fi
+      - name: Save guest accessibility diagnostics for the failed capture
+        if: failure() && github.event_name == 'workflow_dispatch' && steps.store_capture.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: app-store-diagnostic-${{ inputs.display || 'large' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/store-guest-ax.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Save App Store screenshots for review
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

@@ -43,6 +43,29 @@ final class FoodHomeAppUITests: XCTestCase {
 
 final class AppStoreScreenshots: XCTestCase {
     private let openDishPrefix = "Открыть "
+    private var guestApp: XCUIApplication?
+    private var stage = "navigation"
+
+    override func tearDownWithError() throws {
+        if let app = guestApp, let run = testRun, run.totalFailureCount > 0 {
+            let web = app.webViews.firstMatch
+            // Restrict diagnostics to known public controls and counts. Labels from content may contain personal data.
+            let nodes: [(String, XCUIElementQuery)] = [
+                ("catalog_nav", web.links.matching(NSPredicate(format: "label == %@", "Каталог"))),
+                ("dishes_heading", web.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Блюда"))),
+                ("catalog_filters", web.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Показать фильтры"))),
+                ("open_links", web.links.matching(NSPredicate(format: "label BEGINSWITH %@", openDishPrefix))),
+                ("address_sheet", web.buttons.matching(NSPredicate(format: "label == %@", "Закрыть выбор адреса"))),
+                ("consent_sheet", web.buttons.matching(NSPredicate(format: "label == %@", "Отклонить"))),
+                ("dish_photo", web.buttons.matching(NSPredicate(format: "label == %@", "Показать фото товара полностью"))),
+            ]
+            print("FOODHOME_STORE_AX stage=\(stage)")
+            for (key, query) in nodes {
+                print("FOODHOME_STORE_AX \(key)=\(query.count)")
+            }
+        }
+        try super.tearDownWithError()
+    }
 
     func testGuestCatalogAndDish() throws {
         try XCTSkipUnless(
@@ -51,6 +74,7 @@ final class AppStoreScreenshots: XCTestCase {
         )
         continueAfterFailure = false
         let app = XCUIApplication()
+        guestApp = app
         app.launchArguments += ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
         XCUIDevice.shared.orientation = .portrait
         app.launch()
@@ -65,15 +89,17 @@ final class AppStoreScreenshots: XCTestCase {
         }, "The app must display the normal guest shopping navigation.")
         try XCTUnwrap(catalog).tap()
 
-        let allDishes = web.descendants(matching: .any)
-            .matching(NSPredicate(format: "label ==[c] %@", "Все блюда")).firstMatch
+        stage = "catalog"
+        // This control is present even when filters are collapsed and the catalog title is localized by city.
+        let filters = web.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Показать фильтры")).firstMatch
         XCTAssertTrue(wait(seconds: 30) {
             self.dismissGuestPrompts(in: web)
-            return allDishes.exists
+            return filters.exists
         }, "The public catalog must load.")
         let cards = web.links.matching(NSPredicate(format: "label BEGINSWITH %@", openDishPrefix))
         XCTAssertTrue(cards.firstMatch.waitForExistence(timeout: 30), "The catalog must contain public dish cards.")
 
+        stage = "dish-card"
         var selection: (link: XCUIElement, name: String)?
         for attempt in 0..<5 {
             dismissGuestPrompts(in: web)
@@ -91,13 +117,16 @@ final class AppStoreScreenshots: XCTestCase {
             if attempt < 4 { web.swipeUp(velocity: .slow) }
         }
         let dish = try XCTUnwrap(selection, "A visible dish with a real catalog photograph is required.")
+        dismissGuestPrompts(in: web)
         try attachScreen("foodhome-store-01-catalog")
+        stage = "dish"
         // Tap the dish image, away from its favourite and cart controls.
         dish.link.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.23)).tap()
 
         let photo = web.buttons["Показать фото товара полностью"].firstMatch
         XCTAssertTrue(photo.waitForExistence(timeout: 25), "The selected dish must open in the product sheet.")
-        XCTAssertTrue(web.staticTexts[dish.name].firstMatch.waitForExistence(timeout: 10))
+        let title = web.descendants(matching: .any).matching(NSPredicate(format: "label == %@", dish.name)).firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
         XCTAssertTrue(web.buttons["Закрыть"].firstMatch.exists)
         XCTAssertTrue(photo.isHittable)
         try attachScreen("foodhome-store-02-dish")
