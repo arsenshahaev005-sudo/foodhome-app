@@ -87,6 +87,10 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         case "openNotificationSettings":
             guard presenterProvider?()?.viewIfLoaded?.window != nil,
                   UIApplication.shared.applicationState == .active else { reportingCompletion(unavailable()); return }
+            guard canPresentNotificationAction else {
+                reportingCompletion(.failure(code: "CANCELLED", message: "Notification settings require a foreground user action"))
+                return
+            }
             guard enforceRateLimit(method: request.method, completion: reportingCompletion) else { return }
             let destination: String
             if #available(iOS 16.0, *) { destination = UIApplication.openNotificationSettingsURLString }
@@ -286,44 +290,26 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         ) else {
             return
         }
-        guard let presenter = presenterProvider?(), presenter.presentedViewController == nil else {
+        guard presenterProvider?()?.viewIfLoaded?.window != nil else {
             completion(unavailable())
             return
         }
+        notificationCoordinator.requestAuthorizationIfNeeded(canPresent: { [weak self] in
+            self?.canPresentNotificationAction == true
+        }) { result in
+            switch result {
+            case let .status(status): completion(self.notificationResult(status))
+            case .cancelled:
+                completion(.failure(code: "CANCELLED", message: "Notification permission requires a foreground user action"))
+            }
+        }
+    }
 
-        let purpose = request.payload["purpose"] as? String
-        let alert = UIAlertController(
-            title: "Включить уведомления?",
-            message: purpose ?? "Узнавать об актуальных событиях Food&Home",
-            preferredStyle: .alert
-        )
-        alert.addAction(
-            UIAlertAction(title: "Не сейчас", style: .cancel) { _ in
-                completion(
-                    .failure(
-                        code: "CANCELLED",
-                        message: "Notification permission request was cancelled"
-                    )
-                )
-            }
-        )
-        alert.addAction(
-            UIAlertAction(title: "Продолжить", style: .default) { [weak self] _ in
-                guard let self else {
-                    completion(
-                        .failure(
-                        code: "INTERNAL_ERROR",
-                        message: "Notification permission request failed"
-                        )
-                    )
-                    return
-                }
-                self.notificationCoordinator.requestAuthorization { status in
-                    completion(self.notificationResult(status))
-                }
-            }
-        )
-        presenter.present(alert, animated: true)
+    private var canPresentNotificationAction: Bool {
+        guard let presenter = presenterProvider?(), let window = presenter.viewIfLoaded?.window,
+              !window.isHidden, window.windowScene?.activationState == .foregroundActive,
+              presenter.presentedViewController == nil else { return false }
+        return hasRecentAuthUserAction()
     }
 
     private func notificationResult(_ status: NotificationAuthorizationStatus) -> BridgeDispatchResult {

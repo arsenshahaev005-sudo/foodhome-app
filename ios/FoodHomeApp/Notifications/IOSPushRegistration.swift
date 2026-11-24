@@ -19,12 +19,14 @@ final class IOSPushRegistration {
         let id: UUID
         var bindingID: String?
         var tokenDigest: String?
+        // A POST can reach the server even if its response is lost or the app quits.
+        var bindingAttempted: Bool?
     }
 
     private let file: URL
     private let network: URLSession
     private var state: Installation
-    private var token: Data?
+    private var registration = APNsDeviceRegistration()
     private var generation = UUID()
     private var previousRequest: Task<Void, Never>?
     private var queuedRequests = 0
@@ -59,15 +61,25 @@ final class IOSPushRegistration {
     }
 
     func receive(_ value: Data) {
-        guard AppEnvironmentResolver.productionPushAvailable, !value.isEmpty, value.count <= 2048, value != token else { return }
-        token = value
+        guard AppEnvironmentResolver.productionPushAvailable, registration.receive(value) else { return }
         if let old = state.tokenDigest, old != PushPayloadPolicy.digest(value) {
             state.bindingID = nil
             state.tokenDigest = nil
+            state.bindingAttempted = true
             inbox = PushNavigationInbox()
             _ = persist()
         }
         NotificationCenter.default.post(name: .foodHomePushStateChanged, object: nil)
+    }
+
+    func registrationFailed() {
+        if registration.fail() {
+            NotificationCenter.default.post(name: .foodHomePushStateChanged, object: nil)
+        }
+    }
+
+    private func requestDeviceToken() {
+        if registration.begin() { UIApplication.shared.registerForRemoteNotifications() }
     }
 
     func suspend() { inbox.sessionConfirmed = false }
@@ -79,8 +91,8 @@ final class IOSPushRegistration {
         Task {
             let permission = await IOSNotificationCoordinator().status()
             guard current == generation else { return }
-            if permission.canReceivePush { UIApplication.shared.registerForRemoteNotifications() }
-            else if permission == .denied { _ = clear() }
+            if permission.canReceivePush { requestDeviceToken() }
+            else if permission == .denied { _ = clear(stopRegistration: true) }
         }
     }
 
@@ -99,14 +111,17 @@ final class IOSPushRegistration {
     }
 
     @discardableResult
-    private func clear() -> Bool {
+    private func clear(stopRegistration: Bool = false) -> Bool {
         generation = UUID()
         inbox = PushNavigationInbox()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-        UIApplication.shared.unregisterForRemoteNotifications()
-        token = nil
+        let couldReceiveForOldOwner = state.bindingID != nil || state.bindingAttempted == true
+        if registration.clear(couldReceiveForOldOwner: couldReceiveForOldOwner, stopRegistration: stopRegistration) {
+            UIApplication.shared.unregisterForRemoteNotifications()
+        }
         state.bindingID = nil
         state.tokenDigest = nil
+        state.bindingAttempted = nil
         if persist() { return true }
         // A stale generation must not be restored on relaunch if storage is full.
         try? FileManager.default.removeItem(at: file)
@@ -128,7 +143,7 @@ final class IOSPushRegistration {
             completion(result(clear() ? "disabled" : "unavailable"))
             return
         }
-        if action == "revoke" { _ = clear() }
+        if action == "revoke" { _ = clear(stopRegistration: true) }
         guard AppEnvironmentResolver.productionPushAvailable else {
             if action == "status" { completion(result("unavailable")) }
             else { completion(.failure(code: "CAPABILITY_UNAVAILABLE", message: "Production push registration is unavailable")) }
@@ -160,27 +175,27 @@ final class IOSPushRegistration {
             let permission = await IOSNotificationCoordinator().status()
             guard current == generation else { completion(self.result("disabled")); return }
             guard permission.canReceivePush else {
-                if state.bindingID != nil { _ = clear() }
+                if permission == .denied || permission == .notDetermined { _ = clear(stopRegistration: true) }
+                else { inbox.sessionConfirmed = false }
                 completion(self.result(permission == .denied ? "permissionDenied" : "disabled"))
                 return
             }
-            UIApplication.shared.registerForRemoteNotifications()
+            requestDeviceToken()
             if action == "status" {
                 inbox.sessionConfirmed = true
                 // The website checked the authenticated owner and consent before asking for status.
                 if inbox.hasPending { NotificationCenter.default.post(name: .foodHomePushRoute, object: nil) }
-                completion(self.result(state.bindingID == nil ? "needsBinding" : "enabled"))
+                completion(self.result(registration.status(bindingID: state.bindingID, tokenDigest: state.tokenDigest)))
                 return
             }
-            // Registration is asynchronous on first install. A later token callback also wakes the website.
-            for _ in 0..<20 where token == nil && current == generation {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-            }
-            guard let deviceToken = token, current == generation,
-                  let nonce = payload["nonce"] as? String, PushPayloadPolicy.validAction(payload),
+            // The token callback wakes the website to get a fresh grant for the current account.
+            guard let deviceToken = registration.token else { completion(self.result("unavailable")); return }
+            guard let nonce = payload["nonce"] as? String, PushPayloadPolicy.validAction(payload),
                   let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
-                  let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
-                  persist() else { completion(self.result("needsBinding")); return }
+                  let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            else { completion(.failure(code: "INVALID_PAYLOAD", message: "Invalid notification registration")); return }
+            state.bindingAttempted = true
+            guard persist() else { completion(self.result("unavailable")); return }
             let preferred = Locale.preferredLanguages.first ?? "ru"
             let receipt = await self.post(action, nonce: nonce, additional: [
                 "platform": "ios", "provider": "apns", "appVersion": version, "buildVersion": build,
@@ -188,16 +203,14 @@ final class IOSPushRegistration {
                 "notificationStatus": permission.rawValue, "pushToken": deviceToken.map { String(format: "%02x", $0) }.joined()
             ])
             let bindingID = PushPayloadPolicy.digest(Data(nonce.utf8))
-            guard current == generation, deviceToken == token else { completion(self.result("needsBinding")); return }
-            guard receipt?["bindingId"] as? String == bindingID, receipt?["platform"] as? String == "ios",
-                  receipt?["provider"] as? String == "apns", receipt?["environment"] as? String == "production",
-                  receipt?["notificationStatus"] as? String == permission.rawValue,
-                  receipt?["revokedAt"] is NSNull, receipt?["invalidatedAt"] is NSNull else {
+            guard current == generation, deviceToken == registration.token else { completion(self.result("needsBinding")); return }
+            guard PushPayloadPolicy.acceptsBindingReceipt(receipt, bindingID: bindingID, permission: permission) else {
                 completion(.failure(code: "CAPABILITY_UNAVAILABLE", message: "Binding could not be confirmed", retryable: true))
                 return
             }
             state.bindingID = bindingID
             state.tokenDigest = PushPayloadPolicy.digest(deviceToken)
+            state.bindingAttempted = nil
             guard persist() else { _ = clear(); completion(self.result("unavailable")); return }
             inbox.sessionConfirmed = true
             completion(self.result("enabled"))
@@ -205,7 +218,7 @@ final class IOSPushRegistration {
     }
 
     private func post(_ action: String, nonce: String, additional: [String: String]) async -> [String: Any]? {
-        let url = PushPayloadPolicy.origin.appendingPathComponent("api/v1/mobile/installations/" + action, isDirectory: true)
+        guard let url = PushPayloadPolicy.installationEndpoint(for: action) else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpShouldHandleCookies = false

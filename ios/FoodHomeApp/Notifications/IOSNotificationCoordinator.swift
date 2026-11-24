@@ -7,7 +7,27 @@ enum NotificationPermissionResult {
 }
 
 @MainActor
-final class IOSNotificationCoordinator {
+protocol IOSNotificationPermissions {
+    func authorizationStatus(completion: @escaping (NotificationAuthorizationStatus) -> Void)
+    func requestAuthorization(completion: @escaping (NotificationAuthorizationStatus) -> Void)
+}
+
+extension IOSNotificationPermissions {
+    func requestAuthorizationIfNeeded(
+        canPresent: @escaping () -> Bool,
+        completion: @escaping (NotificationPermissionResult) -> Void
+    ) {
+        guard canPresent() else { completion(.cancelled); return }
+        authorizationStatus { status in
+            guard status == .notDetermined else { completion(.status(status)); return }
+            guard canPresent() else { completion(.cancelled); return }
+            self.requestAuthorization { completion(.status($0)) }
+        }
+    }
+}
+
+@MainActor
+final class IOSNotificationCoordinator: IOSNotificationPermissions {
     private let center: UNUserNotificationCenter
 
     init(center: UNUserNotificationCenter = .current()) {
@@ -44,12 +64,9 @@ final class IOSNotificationCoordinator {
     func requestAuthorization(
         completion: @escaping (NotificationAuthorizationStatus) -> Void
     ) {
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, _ in
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { [self] _, _ in
             DispatchQueue.main.async {
-                if granted && AppEnvironmentResolver.productionPushAvailable {
-                    UIApplication.shared.registerForRemoteNotifications()
-                }
-                self?.authorizationStatus(completion: completion)
+                self.authorizationStatus(completion: completion)
             }
         }
     }

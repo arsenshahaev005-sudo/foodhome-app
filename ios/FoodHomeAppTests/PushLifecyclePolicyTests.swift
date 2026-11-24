@@ -67,4 +67,137 @@ final class PushLifecyclePolicyTests: XCTestCase {
         XCTAssertFalse(PushPayloadPolicy.validAction(["action": "bind"], now: now))
         XCTAssertTrue(PushPayloadPolicy.validAction(["action": "clear"], now: now))
     }
+
+    func testProductionNonceDateAndInstallationURLs() {
+        let grant: [String: Any] = ["action": "bind", "nonce": String(repeating: "n", count: 43),
+                                    "expiresAt": "2027-01-15T08:02:00.123456Z"]
+        XCTAssertTrue(PushPayloadPolicy.validAction(grant, now: now))
+        XCTAssertEqual(PushPayloadPolicy.origin, AppEnvironmentResolver.resolve(isDebug: false, debugBaseURL: nil).trustedOrigin)
+        for action in ["bind", "revoke"] {
+            XCTAssertEqual(PushPayloadPolicy.installationEndpoint(for: action)?.absoluteString,
+                           "https://foodhome.market/api/v1/mobile/installations/\(action)/")
+        }
+        XCTAssertNil(PushPayloadPolicy.installationEndpoint(for: "../"))
+    }
+
+    func testLateDeviceCallbackSurvivesOlderWebClearUntilFirstConfirmedBinding() {
+        var registration = APNsDeviceRegistration()
+        let token = Data([1, 2, 3])
+        let digest = PushPayloadPolicy.digest(token)
+        XCTAssertTrue(registration.begin(now: now))
+        XCTAssertFalse(registration.begin(now: now.addingTimeInterval(3)))
+        XCTAssertEqual(registration.status(bindingID: binding, tokenDigest: digest), "unavailable")
+        XCTAssertTrue(registration.receive(token))
+        // The first website release clears on every read while it has no remembered owner.
+        XCTAssertFalse(registration.clear(couldReceiveForOldOwner: false))
+        XCTAssertFalse(registration.begin(now: now.addingTimeInterval(4)))
+        XCTAssertEqual(registration.status(bindingID: nil, tokenDigest: nil), "needsBinding")
+        XCTAssertEqual(registration.status(bindingID: binding, tokenDigest: digest), "enabled")
+        XCTAssertFalse(registration.receive(token))
+        XCTAssertTrue(registration.receive(Data([4, 5, 6])))
+        XCTAssertEqual(registration.status(bindingID: binding, tokenDigest: digest), "needsBinding")
+    }
+
+    func testRegistrationFailureIsRetriedWithoutRepeatedRegistrationOrFalseSuccess() {
+        var registration = APNsDeviceRegistration()
+        XCTAssertTrue(registration.begin(now: now))
+        XCTAssertTrue(registration.fail(now: now))
+        XCTAssertFalse(registration.fail(now: now))
+        XCTAssertFalse(registration.begin(now: now.addingTimeInterval(2)))
+        XCTAssertEqual(registration.status(bindingID: binding, tokenDigest: nil), "unavailable")
+        XCTAssertTrue(registration.begin(now: now.addingTimeInterval(30)))
+        XCTAssertFalse(registration.receive(Data()))
+        XCTAssertTrue(registration.receive(Data([1])))
+        XCTAssertFalse(registration.fail(now: now))
+        XCTAssertEqual(registration.status(bindingID: nil, tokenDigest: nil), "needsBinding")
+    }
+
+    func testChangingOwnerOrRevokingDiscardsTheTokenAndLateCallbacks() {
+        var registration = APNsDeviceRegistration()
+        XCTAssertTrue(registration.begin(now: now))
+        XCTAssertTrue(registration.receive(Data([1])))
+        XCTAssertTrue(registration.clear(couldReceiveForOldOwner: true))
+        XCTAssertFalse(registration.receive(Data([1])))
+        XCTAssertFalse(registration.clear(couldReceiveForOldOwner: false))
+        XCTAssertTrue(registration.begin(now: now))
+        XCTAssertTrue(registration.clear(couldReceiveForOldOwner: false, stopRegistration: true))
+        XCTAssertFalse(registration.receive(Data([2])))
+        // A persisted receipt or potentially successful POST also needs unregister after relaunch.
+        XCTAssertTrue(registration.clear(couldReceiveForOldOwner: true))
+    }
+
+    func testEnabledRequiresTheCurrentProductionReceipt() {
+        let receipt: [String: Any] = ["bindingId": binding, "platform": "ios", "provider": "apns",
+                                      "environment": "production", "notificationStatus": "authorized",
+                                      "revokedAt": NSNull(), "invalidatedAt": NSNull()]
+        func accepts(_ value: [String: Any]?) -> Bool {
+            PushPayloadPolicy.acceptsBindingReceipt(value, bindingID: binding, permission: .authorized)
+        }
+        XCTAssertTrue(accepts(receipt))
+        XCTAssertFalse(accepts(nil))
+        for (key, value) in ["bindingId": "old", "environment": "sandbox", "notificationStatus": "denied",
+                            "revokedAt": "now", "invalidatedAt": "now"] {
+            XCTAssertFalse(accepts(receipt.merging([key: value]) { _, replacement in replacement }))
+        }
+    }
+
+    @MainActor
+    func testOnlyAnExplicitForegroundActionShowsOneSystemPrompt() {
+        let permissions = PermissionFixture()
+        var result: NotificationPermissionResult?
+        var active = false
+        func request() {
+            permissions.requestAuthorizationIfNeeded(canPresent: { active }) { result = $0 }
+        }
+        request()
+        guard case .cancelled = result else { return XCTFail("Expected an explicit user action") }
+        XCTAssertEqual(permissions.prompts, 0)
+
+        for existing in [NotificationAuthorizationStatus.denied, .provisional, .authorized] {
+            active = true
+            permissions.current = existing
+            request()
+            guard case let .status(status) = result else { return XCTFail("Expected OS status") }
+            XCTAssertEqual(status, existing)
+            XCTAssertEqual(permissions.prompts, 0)
+        }
+        permissions.current = .notDetermined
+        permissions.beforeStatus = { active = false }
+        request()
+        guard case .cancelled = result else { return XCTFail("The window left the foreground") }
+        XCTAssertEqual(permissions.prompts, 0)
+
+        permissions.beforeStatus = {}
+        active = true
+        request()
+        guard case .status(.denied) = result else { return XCTFail("A system refusal must be preserved") }
+        request()
+        XCTAssertEqual(permissions.prompts, 1)
+
+        permissions.current = .notDetermined
+        permissions.answer = .authorized
+        request()
+        guard case .status(.authorized) = result else { return XCTFail("Expected the granted OS status") }
+        request()
+        XCTAssertEqual(permissions.prompts, 2)
+    }
+}
+
+@MainActor
+private final class PermissionFixture: IOSNotificationPermissions {
+    var current: NotificationAuthorizationStatus = .notDetermined
+    var answer: NotificationAuthorizationStatus = .denied
+    var beforeStatus: () -> Void = {}
+    private(set) var prompts = 0
+
+    func authorizationStatus(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
+        beforeStatus()
+        completion(current)
+    }
+
+    func requestAuthorization(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
+        prompts += 1
+        current = answer
+        completion(current)
+    }
 }
