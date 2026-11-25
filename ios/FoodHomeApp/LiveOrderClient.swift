@@ -28,7 +28,8 @@ struct LiveOrderBinding: Codable {
 struct LiveOrderBindingStore {
     private let base: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "market.foodhome.order-activity",
+        kSecAttrService as String: FoodHomeDeployment.current == .production
+            ? "market.foodhome.order-activity" : "market.foodhome.app.staging.order-activity",
         kSecAttrAccount as String: "registrations-v1"
     ]
 

@@ -23,7 +23,7 @@ final class LiveOrderAttributesTests: XCTestCase {
     func testLockScreenHasOnlyAuthoritativeStageAndOpensSpecificOrder() throws {
         let id = UUID()
         let attributes = LiveOrderAttributes(orderID: id, bindingID: UUID())
-        XCTAssertEqual(attributes.orderURL.absoluteString, "https://foodhome.market/orders/\(id.uuidString.lowercased())")
+        XCTAssertEqual(attributes.orderURL.absoluteString, FoodHomeDeployment.current.origin.absoluteString + "/orders/\(id.uuidString.lowercased())")
         let stage = try JSONDecoder().decode(LiveOrderAttributes.ContentState.self, from: Data(#"{"stage":"READY_FOR_PICKUP"}"#.utf8))
         XCTAssertEqual(stage.title, "Можно забирать")
         XCTAssertFalse(stage.isFinal)

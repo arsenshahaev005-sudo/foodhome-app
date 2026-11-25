@@ -6,11 +6,7 @@ struct SberAuthPolicy {
     let trustedOrigin: URL
 
     var callbackScheme: String? {
-        switch trustedOrigin.absoluteString {
-        case "https://foodhome.market": return "market.foodhome.app.auth"
-        case "https://staging.foodhome.market": return "market.foodhome.app.staging.auth"
-        default: return nil
-        }
+        FoodHomeDeployment.allCases.first { $0.origin.absoluteString == trustedOrigin.absoluteString }?.callbackScheme
     }
 
     func authorizationURL(attemptID: String, raw: String) -> URL? {

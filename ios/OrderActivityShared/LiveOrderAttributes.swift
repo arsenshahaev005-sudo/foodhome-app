@@ -60,7 +60,7 @@ struct LiveOrderAttributes: ActivityAttributes {
     let bindingID: UUID
 
     var orderURL: URL {
-        URL(string: "https://foodhome.market")!
+        FoodHomeDeployment.current.origin
             .appendingPathComponent("orders").appendingPathComponent(orderID.uuidString.lowercased())
     }
 }

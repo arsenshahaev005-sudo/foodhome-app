@@ -2,6 +2,23 @@ import XCTest
 @testable import FoodHomeApp
 
 final class NavigationPolicyTests: XCTestCase {
+    func testStagingAppKeepsProductionOrdersAndPaymentsOutsideItsNavigation() throws {
+        let policy = NavigationPolicy(trustedOrigin: FoodHomeDeployment.staging.origin)
+        let checkout = try XCTUnwrap(URL(string: "https://staging.foodhome.market/checkout"))
+        XCTAssertEqual(policy.classify(checkout.absoluteString), .internal(checkout))
+        for url in ["https://foodhome.market/checkout", "https://api.foodhome.market/auth", "https://www.foodhome.market/orders"] {
+            XCTAssertEqual(policy.classify(url), .blocked(.productionHostInStaging))
+        }
+        let provider = try XCTUnwrap(URL(string: "https://id.sber.ru/"))
+        XCTAssertEqual(policy.classify(provider.absoluteString), .external(provider))
+        let stageBridge = BridgeOriginPolicy(trustedOrigin: FoodHomeDeployment.staging.origin)
+        XCTAssertFalse(stageBridge.accepts(frameURL: FoodHomeDeployment.production.origin, isMainFrame: true))
+        XCTAssertFalse(stageBridge.accepts(frameURL: checkout, isMainFrame: false))
+        XCTAssertTrue(stageBridge.accepts(frameURL: checkout, isMainFrame: true))
+        let productionBridge = BridgeOriginPolicy(trustedOrigin: FoodHomeDeployment.production.origin)
+        XCTAssertFalse(productionBridge.accepts(frameURL: checkout, isMainFrame: true))
+    }
+
     private let policy = NavigationPolicy(
         trustedOrigin: URL(string: "https://foodhome.market")!
     )

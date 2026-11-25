@@ -61,7 +61,7 @@ final class IOSPushRegistration {
     }
 
     func receive(_ value: Data) {
-        guard AppEnvironmentResolver.productionPushAvailable, registration.receive(value) else { return }
+        guard AppEnvironmentResolver.distributionPushAvailable, registration.receive(value) else { return }
         if let old = state.tokenDigest, old != PushPayloadPolicy.digest(value) {
             state.bindingID = nil
             state.tokenDigest = nil
@@ -97,7 +97,7 @@ final class IOSPushRegistration {
     }
 
     func parsed(_ info: [AnyHashable: Any]) -> PushOpen? {
-        guard AppEnvironmentResolver.productionPushAvailable else { return nil }
+        guard AppEnvironmentResolver.distributionPushAvailable else { return nil }
         return PushPayloadPolicy.parse(info, bindingID: state.bindingID)
     }
 
@@ -144,7 +144,7 @@ final class IOSPushRegistration {
             return
         }
         if action == "revoke" { _ = clear(stopRegistration: true) }
-        guard AppEnvironmentResolver.productionPushAvailable else {
+        guard AppEnvironmentResolver.distributionPushAvailable else {
             if action == "status" { completion(result("unavailable")) }
             else { completion(.failure(code: "CAPABILITY_UNAVAILABLE", message: "Production push registration is unavailable")) }
             return
@@ -227,7 +227,7 @@ final class IOSPushRegistration {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var body = additional
         body["installationId"] = state.id.uuidString.lowercased()
-        body["environment"] = "production"
+        body["environment"] = FoodHomeDeployment.current.rawValue
         do {
             request.httpBody = try JSONEncoder().encode(body)
             let (stream, response) = try await network.bytes(for: request)

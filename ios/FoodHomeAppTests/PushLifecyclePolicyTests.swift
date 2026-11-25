@@ -16,7 +16,7 @@ final class PushLifecyclePolicyTests: XCTestCase {
     }
 
     func testCurrentBindingMayOpenExactConversationAndOrder() {
-        XCTAssertEqual(parse()?.route.absoluteString, "https://foodhome.market/chat?threadId=" + id)
+        XCTAssertEqual(parse()?.route.absoluteString, FoodHomeDeployment.current.origin.absoluteString + "/chat?threadId=" + id)
         XCTAssertNotNil(parse(["route": "/orders/" + id]))
         XCTAssertNotNil(parse(["route": "/seller?view=CHAT&supportThreadId=" + id, "recipientRole": "SELLER"]))
         XCTAssertNotNil(parse(["route": "/seller?view=ORDERS&orderId=" + id, "recipientRole": "SELLER"]))
@@ -68,14 +68,17 @@ final class PushLifecyclePolicyTests: XCTestCase {
         XCTAssertTrue(PushPayloadPolicy.validAction(["action": "clear"], now: now))
     }
 
-    func testProductionNonceDateAndInstallationURLs() {
+    func testNonceDateAndDistributionSpecificInstallationURLs() {
         let grant: [String: Any] = ["action": "bind", "nonce": String(repeating: "n", count: 43),
                                     "expiresAt": "2027-01-15T08:02:00.123456Z"]
         XCTAssertTrue(PushPayloadPolicy.validAction(grant, now: now))
-        XCTAssertEqual(PushPayloadPolicy.origin, AppEnvironmentResolver.resolve(isDebug: false, debugBaseURL: nil).trustedOrigin)
+        XCTAssertEqual(PushPayloadPolicy.origin, AppEnvironmentResolver.current().trustedOrigin)
         for action in ["bind", "revoke"] {
-            XCTAssertEqual(PushPayloadPolicy.installationEndpoint(for: action)?.absoluteString,
-                           "https://foodhome.market/api/v1/mobile/installations/\(action)/")
+            for deployment in FoodHomeDeployment.allCases {
+                XCTAssertEqual(PushPayloadPolicy.installationEndpoint(for: action, deployment: deployment)?.absoluteString,
+                               deployment.origin.absoluteString + "/api/v1/mobile/installations/\(action)/")
+            }
+            XCTAssertEqual(PushPayloadPolicy.installationEndpoint(for: action)?.host, FoodHomeDeployment.current.host)
         }
         XCTAssertNil(PushPayloadPolicy.installationEndpoint(for: "../"))
     }
@@ -126,14 +129,16 @@ final class PushLifecyclePolicyTests: XCTestCase {
         XCTAssertTrue(registration.clear(couldReceiveForOldOwner: true))
     }
 
-    func testEnabledRequiresTheCurrentProductionReceipt() {
+    func testEnabledRequiresReceiptForThisDeployment() {
         let receipt: [String: Any] = ["bindingId": binding, "platform": "ios", "provider": "apns",
-                                      "environment": "production", "notificationStatus": "authorized",
+                                      "environment": FoodHomeDeployment.current.rawValue, "notificationStatus": "authorized",
                                       "revokedAt": NSNull(), "invalidatedAt": NSNull()]
         func accepts(_ value: [String: Any]?) -> Bool {
             PushPayloadPolicy.acceptsBindingReceipt(value, bindingID: binding, permission: .authorized)
         }
         XCTAssertTrue(accepts(receipt))
+        let other: FoodHomeDeployment = FoodHomeDeployment.current == .production ? .staging : .production
+        XCTAssertFalse(accepts(receipt.merging(["environment": other.rawValue]) { _, new in new }))
         XCTAssertFalse(accepts(nil))
         for (key, value) in ["bindingId": "old", "environment": "sandbox", "notificationStatus": "denied",
                             "revokedAt": "now", "invalidatedAt": "now"] {

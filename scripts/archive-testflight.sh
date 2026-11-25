@@ -4,6 +4,15 @@ umask 077
 
 signing_dir="$RUNNER_TEMP/foodhome-testflight"
 mkdir -p "$signing_dir"
+configuration=(-configuration Release)
+case "$DISTRIBUTION_TARGET" in
+  production) ;;
+  staging)
+    [[ "$DISTRIBUTION_AUDIENCE" == internal ]] || { echo '::error::Staging поддерживает только внутренний TestFlight.'; exit 1; }
+    configuration+=(-xcconfig "$GITHUB_WORKSPACE/ios/Config/Staging.xcconfig")
+    ;;
+  *) echo '::error::Неизвестное окружение iOS.'; exit 1 ;;
+esac
 xcodebuild -version
 xcodebuild -help > "$signing_dir/xcode-help.txt" 2>&1
 grep -q testFlightInternalTestingOnly "$signing_dir/xcode-help.txt" || {
@@ -12,13 +21,11 @@ grep -q testFlightInternalTestingOnly "$signing_dir/xcode-help.txt" || {
 }
 
 printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 -D > "$signing_dir/distribution.p12"
-printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 -D > "$signing_dir/profile.mobileprovision"
-printf '%s' "$WIDGET_PROVISION_PROFILE_BASE64" | base64 -D > "$signing_dir/widget.mobileprovision"
-unset BUILD_CERTIFICATE_BASE64 BUILD_PROVISION_PROFILE_BASE64 WIDGET_PROVISION_PROFILE_BASE64
+unset BUILD_CERTIFICATE_BASE64
 for component in profile widget; do
   security cms -D -i "$signing_dir/$component.mobileprovision" -o "$signing_dir/$component.plist"
 done
-python3 scripts/ios_export_options.py "$signing_dir" "$APP_BUNDLE_ID" "$WIDGET_BUNDLE_ID" "$DISTRIBUTION_AUDIENCE"
+python3 scripts/ios_export_options.py "$signing_dir" "$DISTRIBUTION_TARGET" "$DISTRIBUTION_AUDIENCE"
 
 team=$(plutil -extract teamID raw -o - "$signing_dir/ExportOptions.plist")
 identity=$(plutil -extract signingCertificate raw -o - "$signing_dir/ExportOptions.plist")
@@ -56,7 +63,7 @@ security find-identity -v -p codesigning "$keychain" | grep -F "$identity" >/dev
 
 archive="$signing_dir/FoodHome.xcarchive"
 build="$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
-xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp -configuration Release \
+xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp "${configuration[@]}" \
   -destination 'generic/platform=iOS' -archivePath "$archive" \
   CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$team" CODE_SIGN_IDENTITY="$identity" \
   FOODHOME_APP_PROFILE="$profile_uuid" FOODHOME_WIDGET_PROFILE="$widget_uuid" \
@@ -66,16 +73,11 @@ app="$archive/Products/Applications/FoodHomeApp.app"
 widget="$app/PlugIns/FoodHomeOrderStatus.appex"
 codesign --verify --strict "$widget"
 codesign --verify --strict "$app"
-codesign -d --entitlements - "$app" > "$signing_dir/archived-entitlements.plist"
-[[ "$(plutil -extract aps-environment raw -o - "$signing_dir/archived-entitlements.plist")" == production ]]
-[[ "$(plutil -extract NSSupportsLiveActivities raw -o - "$app/Info.plist")" == true ]]
-[[ "$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$app/Info.plist")" == false ]]
-[[ "$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")" == "$APP_BUNDLE_ID" ]]
-[[ "$(plutil -extract CFBundleIdentifier raw -o - "$widget/Info.plist")" == "$WIDGET_BUNDLE_ID" ]]
-[[ "$(plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - "$widget/Info.plist")" == com.apple.widgetkit-extension ]]
-[[ "$(plutil -extract CFBundleVersion raw -o - "$app/Info.plist")" == "$build" ]]
-[[ "$(plutil -extract CFBundleVersion raw -o - "$widget/Info.plist")" == "$build" ]]
-version=$(plutil -extract CFBundleShortVersionString raw -o - "$app/Info.plist")
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$widget/Info.plist")" == "$version" ]]
+codesign -d --entitlements - "$app" > "$signing_dir/profile-entitlements.plist"
+codesign -d --entitlements - "$widget" > "$signing_dir/widget-entitlements.plist"
+security cms -D -i "$app/embedded.mobileprovision" -o "$signing_dir/profile-embedded.plist"
+security cms -D -i "$widget/embedded.mobileprovision" -o "$signing_dir/widget-embedded.plist"
+version=$(python3 scripts/verify_ios_archive.py "$app" "$DISTRIBUTION_TARGET" "$DISTRIBUTION_AUDIENCE" \
+  --build "$build" --signing-dir "$signing_dir")
 printf 'version=%s\nbuild=%s\n' "$version" "$build" >> "$GITHUB_OUTPUT"
-printf 'Archived %s (%s) from %s for %s distribution.\n' "$version" "$build" "$GITHUB_SHA" "$DISTRIBUTION_AUDIENCE" >> "$GITHUB_STEP_SUMMARY"
+printf 'Подписан архив %s %s (%s), коммит %s, аудитория %s.\n' "$DISTRIBUTION_TARGET" "$version" "$build" "$GITHUB_SHA" "$DISTRIBUTION_AUDIENCE" >> "$GITHUB_STEP_SUMMARY"
