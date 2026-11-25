@@ -142,7 +142,7 @@ final class PushLifecyclePolicyTests: XCTestCase {
     }
 
     @MainActor
-    func testOnlyAnExplicitForegroundActionShowsOneSystemPrompt() {
+    func testUndeterminedPermissionInForegroundShowsOneSystemPrompt() {
         let permissions = PermissionFixture()
         var result: NotificationPermissionResult?
         var active = false
@@ -150,7 +150,7 @@ final class PushLifecyclePolicyTests: XCTestCase {
             permissions.requestAuthorizationIfNeeded(canPresent: { active }) { result = $0 }
         }
         request()
-        guard case .cancelled = result else { return XCTFail("Expected an explicit user action") }
+        guard case .cancelled = result else { return XCTFail("An inactive window cannot prompt") }
         XCTAssertEqual(permissions.prompts, 0)
 
         for existing in [NotificationAuthorizationStatus.denied, .provisional, .authorized] {
