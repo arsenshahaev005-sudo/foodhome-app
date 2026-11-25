@@ -59,7 +59,7 @@ final class BridgeSecurityPolicyTests: XCTestCase {
     }
 
     func testUnknownMethodAndVersionReturnTypedRejection() throws {
-        let validator = BridgeRequestValidator(manifest: manifest)
+        let validator = BridgeRequestValidator(manifest: manifest, trustedOrigin: FoodHomeDeployment.production.origin)
         let unknown = Data(
             #"{"protocol":"foodhome.bridge","version":1,"requestId":"r1","method":"eval","payload":{}}"#.utf8
         )
@@ -98,7 +98,7 @@ final class BridgeSecurityPolicyTests: XCTestCase {
             compiledCapabilities: smallManifest.compiledCapabilities
         )
         XCTAssertEqual(
-            BridgeRequestValidator(manifest: smallManifest).validate(Data("яяя".utf8)),
+            BridgeRequestValidator(manifest: smallManifest, trustedOrigin: FoodHomeDeployment.production.origin).validate(Data("яяя".utf8)),
             .rejected(requestID: nil, code: "PAYLOAD_TOO_LARGE")
         )
     }
@@ -123,7 +123,7 @@ final class BridgeSecurityPolicyTests: XCTestCase {
             methods: manifest.methods,
             phase0Capabilities: manifest.phase0Capabilities
         )
-        let validator = BridgeRequestValidator(manifest: strictManifest)
+        let validator = BridgeRequestValidator(manifest: strictManifest, trustedOrigin: FoodHomeDeployment.production.origin)
         let deep = Data(
             #"{"protocol":"foodhome.bridge","version":1,"requestId":"r1","method":"share","payload":{"url":"https://foodhome.market","future":{"a":{"b":{"c":1}}}}}"#.utf8
         )

@@ -1,0 +1,15 @@
+{
+  "production": {
+    "bundleId": "market.foodhome.app",
+    "displayName": "Food&Home",
+    "webHost": "foodhome.market",
+    "audiences": ["internal", "app-store"]
+  },
+  "staging": {
+    "bundleId": "market.foodhome.app.staging",
+    "displayName": "Food&Home Staging",
+    "webHost": "staging.foodhome.market",
+    "audiences": ["internal"],
+    "profileNames": ["FoodHome Staging AppStore", "FoodHome Staging OrderStatus AppStore"]
+  }
+}

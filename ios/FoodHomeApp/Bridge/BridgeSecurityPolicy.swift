@@ -50,7 +50,7 @@ enum BridgeRequestValidation: Equatable {
 
 struct BridgeRequestValidator {
     let manifest: BridgeManifest
-    var trustedOrigin = URL(string: "https://foodhome.market")!
+    let trustedOrigin: URL
 
     func validate(_ data: Data) -> BridgeRequestValidation {
         guard data.count <= manifest.limits.maxMessageBytes else {

@@ -5,6 +5,7 @@ import WidgetKit
 @main
 struct FoodHomeOrderStatus: Widget {
     private let accent = Color(red: 0.99, green: 0.60, blue: 0.25)
+    private let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Food&Home"
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LiveOrderAttributes.self) { context in
@@ -14,7 +15,7 @@ struct FoodHomeOrderStatus: Widget {
                     .foregroundStyle(accent)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(context.isStale ? "Food&Home · Последний статус" : "Food&Home · Мой заказ")
+                    Text(context.isStale ? "\(displayName) · Последний статус" : "\(displayName) · Мой заказ")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(context.state.title)
@@ -31,7 +32,7 @@ struct FoodHomeOrderStatus: Widget {
                     Image(systemName: context.state.symbol).foregroundStyle(accent)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text("Food&Home").font(.caption).foregroundStyle(.secondary)
+                    Text(displayName).font(.caption).foregroundStyle(.secondary)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(context.state.title).font(.headline)

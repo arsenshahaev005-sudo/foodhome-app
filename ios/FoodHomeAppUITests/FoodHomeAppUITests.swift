@@ -39,6 +39,29 @@ final class FoodHomeAppUITests: XCTestCase {
         tab.tap()
         XCTAssertTrue(web.buttons["Меню открыто"].exists)
     }
+
+    func testInstalledStagingReleaseShowsShell() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["FOODHOME_COINSTALL_RELEASE_TEST"] == "1",
+                          "Requires both release apps installed on the dedicated simulator.")
+        let app = XCUIApplication(bundleIdentifier: "market.foodhome.app.staging")
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        let surfaces = [
+            app.webViews.firstMatch,
+            app.descendants(matching: .any)["foodhome.shell.loading"].firstMatch,
+            app.staticTexts["foodhome.shell.title"].firstMatch,
+        ]
+        let visibleShell = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let window = app.windows.firstMatch
+            guard window.exists else { return false }
+            return surfaces.contains { $0.exists && !$0.frame.isEmpty && window.frame.intersects($0.frame) }
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [visibleShell], timeout: 20), .completed)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "foodhome-staging-release-shell"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
 }
 
 final class AppStoreScreenshots: XCTestCase {

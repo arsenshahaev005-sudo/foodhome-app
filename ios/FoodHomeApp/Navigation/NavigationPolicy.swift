@@ -7,6 +7,7 @@ enum NavigationBlockReason: Equatable {
     case forbiddenScheme
     case userInfo
     case invalidHost
+    case productionHostInStaging
     case unexpectedPort
     case nestedURL
 }
@@ -63,6 +64,12 @@ struct NavigationPolicy {
 
         if host == trustedHost && effectivePort(components) != effectivePort(trusted) {
             return .blocked(.unexpectedPort)
+        }
+        let stage = FoodHomeDeployment.staging.host
+        let production = FoodHomeDeployment.production.host
+        if trustedHost == stage, host != stage, !host.hasSuffix("." + stage),
+           host == production || host.hasSuffix("." + production) {
+            return .blocked(.productionHostInStaging)
         }
         if components.scheme?.lowercased() == trusted.scheme?.lowercased(),
            host == trustedHost,

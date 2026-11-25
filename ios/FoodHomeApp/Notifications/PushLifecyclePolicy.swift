@@ -91,17 +91,17 @@ struct APNsDeviceRegistration {
 }
 
 enum PushPayloadPolicy {
-    static let origin = URL(string: "https://foodhome.market")!
+    static var origin: URL { FoodHomeDeployment.current.origin }
 
-    static func installationEndpoint(for action: String) -> URL? {
+    static func installationEndpoint(for action: String, deployment: FoodHomeDeployment = .current) -> URL? {
         guard action == "bind" || action == "revoke" else { return nil }
-        return URL(string: "/api/v1/mobile/installations/\(action)/", relativeTo: origin)?.absoluteURL
+        return URL(string: "/api/v1/mobile/installations/\(action)/", relativeTo: deployment.origin)?.absoluteURL
     }
 
     static func acceptsBindingReceipt(_ receipt: [String: Any]?, bindingID: String,
-                                      permission: NotificationAuthorizationStatus) -> Bool {
+                                      permission: NotificationAuthorizationStatus, deployment: FoodHomeDeployment = .current) -> Bool {
         receipt?["bindingId"] as? String == bindingID && receipt?["platform"] as? String == "ios" &&
-            receipt?["provider"] as? String == "apns" && receipt?["environment"] as? String == "production" &&
+            receipt?["provider"] as? String == "apns" && receipt?["environment"] as? String == deployment.rawValue &&
             receipt?["notificationStatus"] as? String == permission.rawValue &&
             receipt?["revokedAt"] is NSNull && receipt?["invalidatedAt"] is NSNull
     }

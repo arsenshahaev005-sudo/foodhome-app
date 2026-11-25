@@ -21,6 +21,12 @@ on:
       - "scripts/verify-phase-5-hardening.mjs"
       - "scripts/export-store-screenshots.py"
       - "scripts/test_store_screenshots.py"
+      - "scripts/*ios*.py"
+      - "scripts/ios_distribution.json"
+      - "scripts/*testflight*"
+      - "scripts/*staging-profiles*"
+      - "scripts/app-store-connect.mjs"
+      - ".github/workflows/testflight.yml"
       - ".github/workflows/ios.yml"
 
 permissions:
@@ -34,7 +40,7 @@ jobs:
   test:
     name: iOS
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 40
     # Keep the toolchain and simulator runtime paired; do not use runner defaults.
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -47,6 +53,10 @@ jobs:
         run: plutil -lint ios/FoodHomeApp.xcodeproj/project.pbxproj
       - name: Verify App Store screenshot dimensions
         run: python3 -B -m unittest discover -s scripts -p test_store_screenshots.py
+      - name: Verify distribution targets, export options and App Store Connect responses
+        run: |
+          python3 -B -m unittest discover -s scripts -p 'test_ios*.py'
+          node --test scripts/testflight-distribution.test.mjs
       - name: Prepare pinned Xcode and iOS simulator
         id: simulator
         timeout-minutes: 8
@@ -99,18 +109,72 @@ jobs:
           -destination "platform=iOS Simulator,id=$SIMULATOR_UDID"
           -parallel-testing-enabled NO
           -skip-testing:FoodHomeAppUITests/AppStoreScreenshots
+          -skip-testing:FoodHomeAppUITests/FoodHomeAppUITests/testInstalledStagingReleaseShowsShell
           CODE_SIGNING_ALLOWED=NO
           test
-      - name: Build unsigned Release for simulator
-        run: >-
-          xcodebuild
-          -project ios/FoodHomeApp.xcodeproj
-          -scheme FoodHomeApp
-          -configuration Release
-          -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
-          build
+      - name: Run staging unit tests and tap through the staging WebView
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp \
+            -xcconfig "$GITHUB_WORKSPACE/ios/Config/Staging.xcconfig" \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -derivedDataPath "$RUNNER_TEMP/foodhome-staging-tests" \
+            -parallel-testing-enabled NO -only-testing:FoodHomeAppTests \
+            -only-testing:FoodHomeAppUITests/FoodHomeAppUITests/testWebViewReachesBottomAndNavigationCanBeTapped \
+            CODE_SIGNING_ALLOWED=NO test
+      - name: Build and verify production and staging Release apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in production staging; do
+            build_dir="$RUNNER_TEMP/foodhome-release-$target"
+            configuration=(-configuration Release)
+            if [[ "$target" == staging ]]; then
+              configuration+=(-xcconfig "$GITHUB_WORKSPACE/ios/Config/Staging.xcconfig")
+            fi
+            xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp "${configuration[@]}" \
+              -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$build_dir" \
+              CODE_SIGNING_ALLOWED=NO build
+            python3 scripts/verify_ios_archive.py "$build_dir/Build/Products/Release-iphonesimulator/FoodHomeApp.app" "$target" internal
+          done
+      - name: Install both Release apps and open the staging shell on the same iPhone
+        shell: bash
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+          TEST_RUNNER_FOODHOME_COINSTALL_RELEASE_TEST: "1"
+        run: |
+          set -euo pipefail
+          for target in production staging; do
+            xcrun simctl install "$SIMULATOR_UDID" "$RUNNER_TEMP/foodhome-release-$target/Build/Products/Release-iphonesimulator/FoodHomeApp.app"
+          done
+          production=$(xcrun simctl get_app_container "$SIMULATOR_UDID" market.foodhome.app app)
+          staging=$(xcrun simctl get_app_container "$SIMULATOR_UDID" market.foodhome.app.staging app)
+          [[ "$production" != "$staging" ]]
+          python3 scripts/verify_ios_archive.py "$production" production internal
+          python3 scripts/verify_ios_archive.py "$staging" staging internal
+          expected=$(shasum -a 256 "$staging/FoodHomeApp" | cut -d' ' -f1)
+          xcrun simctl launch "$SIMULATOR_UDID" market.foodhome.app.staging
+          xcrun simctl spawn "$SIMULATOR_UDID" launchctl setenv FOODHOME_COINSTALL_RELEASE_TEST 1
+          # The production test host opens the separately installed staging Release by bundle ID.
+          xcodebuild -project ios/FoodHomeApp.xcodeproj -scheme FoodHomeApp -configuration Release \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" -derivedDataPath "$RUNNER_TEMP/foodhome-release-production" \
+            -parallel-testing-enabled NO -only-testing:FoodHomeAppUITests/FoodHomeAppUITests/testInstalledStagingReleaseShowsShell \
+            -resultBundlePath "$RUNNER_TEMP/staging-shell.xcresult" ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO test
+          staging=$(xcrun simctl get_app_container "$SIMULATOR_UDID" market.foodhome.app.staging app)
+          [[ "$(shasum -a 256 "$staging/FoodHomeApp" | cut -d' ' -f1)" == "$expected" ]]
+          xcrun simctl get_app_container "$SIMULATOR_UDID" market.foodhome.app app >/dev/null
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/staging-shell.xcresult" --output-path "$RUNNER_TEMP/staging-shell"
+          image=$(jq -er '[.[] | .attachments[] | select((.suggestedHumanReadableName // "") | startswith("foodhome-staging-release-shell")) | .exportedFileName] | if length == 1 then .[0] else error("Expected one staging screenshot") end' "$RUNNER_TEMP/staging-shell/manifest.json")
+          [[ "$image" == *.png && "$image" != */* ]]
+          cp "$RUNNER_TEMP/staging-shell/$image" "$RUNNER_TEMP/foodhome-staging-release-shell.png"
+      - name: Save the staging Release screenshot
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: staging-release-shell-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/foodhome-staging-release-shell.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Capture the Russian catalog and dish in the Release app
         id: store_capture
         if: github.event_name == 'workflow_dispatch'

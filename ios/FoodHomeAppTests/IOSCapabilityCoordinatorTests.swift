@@ -219,6 +219,17 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
         XCTAssertEqual(policy.returnURL(callback: callback, attemptID: attempt)?.absoluteString,
                        origin + "/auth/sber/app-return#" + fragment)
         XCTAssertNil(policy.returnURL(callback: callback, attemptID: UUID().uuidString.lowercased()))
+        let stage = SberAuthPolicy(trustedOrigin: FoodHomeDeployment.staging.origin)
+        let stageAuth = auth.replacingOccurrences(of: "foodhome.market", with: "staging.foodhome.market")
+        let stageCallback = try XCTUnwrap(URL(string: "market.foodhome.app.staging.auth://sber/return#\(fragment)"))
+        XCTAssertEqual(stage.callbackScheme, "market.foodhome.app.staging.auth")
+        XCTAssertNotNil(stage.authorizationURL(attemptID: attempt, raw: stageAuth))
+        XCTAssertNil(stage.authorizationURL(attemptID: attempt, raw: auth))
+        XCTAssertNil(policy.authorizationURL(attemptID: attempt, raw: stageAuth))
+        XCTAssertNil(stage.returnURL(callback: callback, attemptID: attempt))
+        XCTAssertNil(policy.returnURL(callback: stageCallback, attemptID: attempt))
+        XCTAssertEqual(stage.returnURL(callback: stageCallback, attemptID: attempt)?.absoluteString,
+                       "https://staging.foodhome.market/auth/sber/app-return#" + fragment)
     }
 
     func testSensitiveRateLimitComesFromManifestAndExpiresByInjectedClock() {

@@ -186,8 +186,9 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
     }
 
     func receivedUniversalLink(_ url: URL) -> Bool {
+        guard offerDeepLink(url) else { return false }
         paymentReturnRouter?.receivedUniversalLink()
-        return offerDeepLink(url)
+        return true
     }
 
     func deliverPendingPush() {
@@ -203,7 +204,7 @@ final class WebViewStore: NSObject, ObservableObject, UIGestureRecognizerDelegat
     }
 
     func sceneBecameActive() {
-        if AppEnvironmentResolver.productionPushAvailable {
+        if AppEnvironmentResolver.distributionPushAvailable {
             IOSPushRegistration.shared.resume()
             LiveOrderCoordinator.shared.resume()
         }

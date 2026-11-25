@@ -1,0 +1,5 @@
+// Pass this file to xcodebuild for both the app and its embedded extension.
+FOODHOME_APP_BUNDLE_ID = market.foodhome.app.staging
+FOODHOME_DISPLAY_NAME = Food&Home Staging
+FOODHOME_WEB_HOST = staging.foodhome.market
+FOODHOME_APP_ICON = AppIconStaging

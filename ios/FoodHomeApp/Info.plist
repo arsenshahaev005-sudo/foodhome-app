@@ -6,6 +6,21 @@
     <false/>
     <key>FoodHomeAPSEnvironment</key>
     <string>$(FOODHOME_APS_ENVIRONMENT)</string>
+    <key>FoodHomeWebHost</key>
+    <string>$(FOODHOME_WEB_HOST)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER).auth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>$(PRODUCT_BUNDLE_IDENTIFIER).auth</string>
+            </array>
+        </dict>
+    </array>
     <key>NSSupportsLiveActivities</key>
     <true/>
 </dict>

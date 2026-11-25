@@ -57,6 +57,26 @@ class ExportOptionsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.options()
 
+    def test_staging_requires_the_named_profiles_and_internal_export(self):
+        self.app = "market.foodhome.app.staging"
+        self.widget = self.app + ".OrderStatus"
+        self.main = {**profile(self.app, push=True), "Name": "FoodHome Staging AppStore"}
+        self.extension = {**profile(self.widget), "Name": "FoodHome Staging OrderStatus AppStore"}
+        options = self.options("internal")
+        self.assertIs(options["testFlightInternalTestingOnly"], True)
+        self.assertEqual(set(options["provisioningProfiles"]), {self.app, self.widget})
+        with self.assertRaises(ValueError):
+            self.options("app-store")
+        self.extension["Name"] = "FoodHome OrderStatus AppStore"
+        with self.assertRaises(ValueError):
+            self.options("internal")
+
+    def test_mixing_staging_and_production_components_fails_before_export(self):
+        self.app = "market.foodhome.app.staging"
+        self.main = profile(self.app, push=True)
+        with self.assertRaises(ValueError):
+            self.options("internal")
+
 
 if __name__ == "__main__":
     unittest.main()

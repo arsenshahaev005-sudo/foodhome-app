@@ -3,6 +3,13 @@ name: iOS distribution
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: App Store Connect application
+        type: choice
+        default: production
+        options:
+          - production
+          - staging
       audience:
         description: Build for internal testing or prepare a regular App Store build
         type: choice
@@ -10,22 +17,49 @@ on:
         options:
           - internal
           - app-store
+      operation:
+        description: Upload a new build or check one previously uploaded
+        type: choice
+        default: upload
+        options:
+          - upload
+          - confirm
+      version:
+        description: Marketing version (required for confirm)
+        type: string
+      build:
+        description: Build number (required for confirm)
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: foodhome-internal-testflight
+  group: foodhome-testflight-${{ inputs.target || 'production' }}
   cancel-in-progress: false
 
 env:
-  APP_BUNDLE_ID: market.foodhome.app
-  WIDGET_BUNDLE_ID: market.foodhome.app.OrderStatus
+  DISTRIBUTION_TARGET: ${{ inputs.target || 'production' }}
   DISTRIBUTION_AUDIENCE: ${{ inputs.audience || 'internal' }}
+  DISTRIBUTION_OPERATION: ${{ inputs.operation || 'upload' }}
 
 jobs:
-  upload:
+  validate:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Validate the app, audience and operation
+        env:
+          APP_VERSION: ${{ inputs.version }}
+          BUILD_NUMBER: ${{ inputs.build }}
+        run: node scripts/confirm-testflight-build.mjs --validate
+
+  upload:
+    needs: validate
+    if: inputs.operation != 'confirm'
     runs-on: macos-15
     environment: testflight
     timeout-minutes: 35
@@ -38,12 +72,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Read the two staging App Store profiles from Apple
+        if: inputs.target == 'staging'
+        env:
+          ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: node scripts/fetch-staging-profiles.mjs
+      - name: Prepare the existing production App Store profiles
+        if: inputs.target != 'staging'
+        env:
+          APP_PROFILE: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          WIDGET_PROFILE: ${{ secrets.WIDGET_PROVISION_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          signing_dir="$RUNNER_TEMP/foodhome-testflight"
+          mkdir -p "$signing_dir"
+          printf '%s' "$APP_PROFILE" | base64 -D > "$signing_dir/profile.mobileprovision"
+          printf '%s' "$WIDGET_PROFILE" | base64 -D > "$signing_dir/widget.mobileprovision"
       - name: Sign and archive Food Home for iPhone
         id: archive
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-          WIDGET_PROVISION_PROFILE_BASE64: ${{ secrets.WIDGET_PROVISION_PROFILE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: bash scripts/archive-testflight.sh
       - name: Upload the signed build to App Store Connect
@@ -85,7 +136,10 @@ jobs:
 
   confirm:
     name: Confirm build and audience in App Store Connect
-    needs: upload
+    needs: [validate, upload]
+    if: >-
+      ${{ !cancelled() && needs.validate.result == 'success' &&
+      (needs.upload.result == 'success' || (inputs.operation == 'confirm' && needs.upload.result == 'skipped')) }}
     runs-on: ubuntu-24.04
     environment: testflight
     timeout-minutes: 45
@@ -98,6 +152,6 @@ jobs:
           ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          APP_VERSION: ${{ needs.upload.outputs.version }}
-          BUILD_NUMBER: ${{ needs.upload.outputs.build }}
+          APP_VERSION: ${{ needs.upload.outputs.version || inputs.version }}
+          BUILD_NUMBER: ${{ needs.upload.outputs.build || inputs.build }}
         run: node scripts/confirm-testflight-build.mjs
