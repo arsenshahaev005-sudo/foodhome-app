@@ -1,5 +1,6 @@
 import XCTest
 import CoreLocation
+import UIKit
 @testable import FoodHomeApp
 
 @MainActor
@@ -63,6 +64,144 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
                      fix(accuracy: 12, age: 4), fix(accuracy: 240, age: 1)]
         XCTAssertEqual(IOSLocationProvider.bestRecentFix(in: fixes, now: now)?.horizontalAccuracy, 12)
         XCTAssertNil(IOSLocationProvider.bestRecentFix(in: [fix(accuracy: -1, age: 0)], now: now))
+    }
+
+    func testFirstPermissionGrantUsesFreshPreciseLocationWithoutWaitingForAnotherUpdate() {
+        let now = Date()
+        let manager = LocationManagerFixture()
+        manager.cachedFix = location(at: now, accuracy: 16)
+        let provider = IOSLocationProvider(manager: manager, now: { now })
+        var result: LocationRequestResult?
+        provider.requestCurrentLocation { result = $0 }
+        XCTAssertEqual(manager.permissionRequests, 1)
+        XCTAssertEqual(manager.cacheReads, 0)
+        XCTAssertEqual(manager.starts, 0)
+        manager.permission = .authorizedWhenInUse
+        provider.locationManagerDidChangeAuthorization(manager)
+        guard case let .granted(latitude, longitude, accuracy, precise) = result else {
+            return XCTFail("Expected the fresh fix after the system grants access")
+        }
+        XCTAssertEqual(latitude, 51.5)
+        XCTAssertEqual(longitude, 46)
+        XCTAssertEqual(accuracy, 16)
+        XCTAssertTrue(precise)
+        XCTAssertEqual(manager.starts, 0)
+    }
+
+    func testStaleOrImpreciseCachedFixWaitsForFreshLocationAndCancelDiscardsLateUpdates() {
+        let now = Date()
+        let manager = LocationManagerFixture()
+        manager.permission = .authorizedWhenInUse
+        let provider = IOSLocationProvider(manager: manager, now: { now })
+        for fix in [location(at: now.addingTimeInterval(-30), accuracy: 8), location(at: now, accuracy: 750)] {
+            manager.cachedFix = fix
+            var results: [LocationRequestResult] = []
+            let starts = manager.starts
+            provider.requestCurrentLocation { results.append($0) }
+            provider.locationManagerDidChangeAuthorization(manager)
+            XCTAssertEqual(manager.starts, starts + 1)
+            XCTAssertTrue(results.isEmpty)
+            provider.cancel()
+            provider.locationManager(manager, didUpdateLocations: [location(at: now, accuracy: 12)])
+            XCTAssertEqual(results.count, 1)
+            guard case .failed(code: "CANCELLED", message: _, retryable: _) = results.first else {
+                return XCTFail("Cancelled acquisition must not publish a late position")
+            }
+        }
+    }
+
+    func testReducedPermissionNeverReusesAPreciseCachedCoordinate() {
+        let now = Date()
+        let manager = LocationManagerFixture()
+        manager.permission = .authorizedWhenInUse
+        manager.precision = .reducedAccuracy
+        manager.cachedFix = location(at: now, accuracy: 8)
+        let provider = IOSLocationProvider(manager: manager, now: { now })
+        var result: LocationRequestResult?
+        provider.requestCurrentLocation { result = $0 }
+        XCTAssertNil(result)
+        XCTAssertEqual(manager.cacheReads, 0)
+        XCTAssertEqual(manager.starts, 1)
+        provider.locationManager(manager, didUpdateLocations: [location(at: now, accuracy: 2_000)])
+        guard case let .granted(_, _, accuracy, precise) = result else {
+            return XCTFail("Expected the approximate result for manual selection")
+        }
+        XCTAssertEqual(accuracy, 2_000)
+        XCTAssertFalse(precise)
+    }
+
+    func testDeadlineRejectsAPartialFixThatHasAgedOut() async {
+        var now = Date()
+        let manager = LocationManagerFixture()
+        manager.permission = .authorizedWhenInUse
+        let provider = IOSLocationProvider(manager: manager, timeout: 0.02, now: { now })
+        let finished = expectation(description: "bounded acquisition")
+        var result: LocationRequestResult?
+        provider.requestCurrentLocation { result = $0; finished.fulfill() }
+        provider.locationManager(manager, didUpdateLocations: [location(at: now.addingTimeInterval(-48), accuracy: 700)])
+        now = now.addingTimeInterval(15)
+        await fulfillment(of: [finished], timeout: 2)
+        guard case .failed(code: "TIMEOUT", message: _, retryable: true) = result else {
+            return XCTFail("Do not grant a stale location at the deadline")
+        }
+    }
+
+    private func location(at timestamp: Date, accuracy: CLLocationAccuracy) -> CLLocation {
+        CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.5, longitude: 46), altitude: 0,
+                   horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: timestamp)
+    }
+
+    func testForegroundEntryCanPromptWithoutATouchButCannotOpenSettings() throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let controller = UIViewController()
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = controller
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let permissions = DelayedNotificationPermissions()
+        var now = Date()
+        let methods: Set<String> = ["requestNotificationPermission", "openNotificationSettings"]
+        let coordinator = IOSCapabilityCoordinator(
+            manifest: manifest(compiledCapabilities: methods, methods: methods, rateLimits: [
+                "requestNotificationPermission": .init(maxRequests: 1, windowSeconds: 30),
+                "openNotificationSettings": .init(maxRequests: 1, windowSeconds: 30),
+            ]),
+            trustedOrigin: try XCTUnwrap(URL(string: "https://foodhome.market")),
+            hasRecentAuthUserAction: { false }, now: { now }, notificationCoordinator: permissions
+        )
+        coordinator.presenterProvider = { controller }
+        var responses: [BridgeDispatchResult] = []
+        func dispatch(_ method: String) {
+            let request = BridgeRequest(requestID: UUID().uuidString, method: method, payload: [:])
+            coordinator.dispatch(request) { responses.append($0) }
+        }
+        dispatch("requestNotificationPermission")
+        XCTAssertEqual(permissions.statusReads, 1)
+        permissions.returnStatus(.notDetermined)
+        XCTAssertEqual(permissions.prompts, 1)
+        // A second request arriving after the rate window still cannot start a second system alert.
+        now = now.addingTimeInterval(31)
+        dispatch("requestNotificationPermission")
+        guard case .failure(code: "RATE_LIMITED", message: _, retryable: _) = responses.last else {
+            return XCTFail("Expected a single pending authorization")
+        }
+        permissions.answerPrompt(.denied)
+        guard case let .success(payload) = responses.last else { return XCTFail("Expected the OS response") }
+        XCTAssertEqual(payload["status"] as? String, "denied")
+        now = now.addingTimeInterval(31)
+        dispatch("requestNotificationPermission")
+        permissions.returnStatus(.denied)
+        XCTAssertEqual(permissions.prompts, 1)
+        dispatch("openNotificationSettings")
+        guard case .failure(code: "CANCELLED", message: _, retryable: _) = responses.last else {
+            return XCTFail("Settings still require an explicit foreground action")
+        }
+        now = now.addingTimeInterval(31)
+        dispatch("requestNotificationPermission")
+        coordinator.cancelPending()
+        permissions.returnStatus(.notDetermined)
+        XCTAssertEqual(permissions.prompts, 1, "An obsolete document cannot prompt")
     }
 
     func testSberReturnsOnlyCurrentAttemptToOriginalWebView() throws {
@@ -179,5 +318,39 @@ final class IOSCapabilityCoordinatorTests: XCTestCase {
             compiledCapabilities: compiledCapabilities,
             rateLimits: rateLimits
         )
+    }
+}
+
+private final class LocationManagerFixture: CLLocationManager {
+    var permission: CLAuthorizationStatus = .notDetermined
+    var precision: CLAccuracyAuthorization = .fullAccuracy
+    var cachedFix: CLLocation?
+    private(set) var cacheReads = 0
+    private(set) var permissionRequests = 0
+    private(set) var starts = 0
+
+    override var authorizationStatus: CLAuthorizationStatus { permission }
+    override var accuracyAuthorization: CLAccuracyAuthorization { precision }
+    override var location: CLLocation? { cacheReads += 1; return cachedFix }
+    override func requestWhenInUseAuthorization() { permissionRequests += 1 }
+    override func startUpdatingLocation() { starts += 1 }
+    override func stopUpdatingLocation() {}
+}
+
+@MainActor
+private final class DelayedNotificationPermissions: IOSNotificationPermissions {
+    private(set) var statusReads = 0
+    private(set) var prompts = 0
+    var returnStatus: (NotificationAuthorizationStatus) -> Void = { _ in }
+    var answerPrompt: (NotificationAuthorizationStatus) -> Void = { _ in }
+
+    func authorizationStatus(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
+        statusReads += 1
+        returnStatus = completion
+    }
+
+    func requestAuthorization(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
+        prompts += 1
+        answerPrompt = completion
     }
 }

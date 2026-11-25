@@ -12,11 +12,13 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
     private let manifest: BridgeManifest
     private let sharePolicy: FoodHomeSharePolicy
     private let locationProvider: IOSLocationProvider
-    private let notificationCoordinator: IOSNotificationCoordinator
+    private let notificationCoordinator: IOSNotificationPermissions
     private let rateLimiter: CapabilityRateLimiter
     private let paymentCoordinator: PaymentCoordinator?
     private let hasRecentPaymentUserAction: () -> Bool
     private let telemetry: TelemetryReporter
+    private var documentGeneration: UInt = 0
+    private var requestingNotificationPermission = false
 
     init(
         manifest: BridgeManifest,
@@ -25,7 +27,8 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         hasRecentPaymentUserAction: @escaping () -> Bool = { false },
         hasRecentAuthUserAction: @escaping () -> Bool = { false },
         now: @escaping () -> Date = Date.init,
-        telemetry: TelemetryReporter? = nil
+        telemetry: TelemetryReporter? = nil,
+        notificationCoordinator: IOSNotificationPermissions? = nil
     ) {
         self.manifest = manifest
         self.trustedOrigin = trustedOrigin
@@ -33,7 +36,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         self.hasRecentAuthUserAction = hasRecentAuthUserAction
         self.sharePolicy = FoodHomeSharePolicy(trustedOrigin: trustedOrigin)
         self.locationProvider = IOSLocationProvider()
-        self.notificationCoordinator = IOSNotificationCoordinator()
+        self.notificationCoordinator = notificationCoordinator ?? IOSNotificationCoordinator()
         self.paymentCoordinator = paymentCoordinator
         self.hasRecentPaymentUserAction = hasRecentPaymentUserAction
         self.rateLimiter = CapabilityRateLimiter(now: now)
@@ -87,7 +90,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         case "openNotificationSettings":
             guard presenterProvider?()?.viewIfLoaded?.window != nil,
                   UIApplication.shared.applicationState == .active else { reportingCompletion(unavailable()); return }
-            guard canPresentNotificationAction else {
+            guard hasForegroundNotificationPresenter, hasRecentAuthUserAction() else {
                 reportingCompletion(.failure(code: "CANCELLED", message: "Notification settings require a foreground user action"))
                 return
             }
@@ -210,6 +213,7 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
     }
 
     func cancelPending() {
+        documentGeneration &+= 1
         sberSession.cancel()
         locationProvider.cancel()
     }
@@ -284,6 +288,10 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
         _ request: BridgeRequest,
         completion: @escaping (BridgeDispatchResult) -> Void
     ) {
+        guard !requestingNotificationPermission else {
+            completion(.failure(code: "RATE_LIMITED", message: "Notification permission request is pending", retryable: true))
+            return
+        }
         guard enforceRateLimit(
             method: "requestNotificationPermission",
             completion: completion
@@ -294,22 +302,25 @@ final class IOSCapabilityCoordinator: BridgeCapabilityDispatching {
             completion(unavailable())
             return
         }
+        let generation = documentGeneration
+        requestingNotificationPermission = true
         notificationCoordinator.requestAuthorizationIfNeeded(canPresent: { [weak self] in
-            self?.canPresentNotificationAction == true
+            guard let self, self.documentGeneration == generation else { return false }
+            return self.hasForegroundNotificationPresenter && !self.locationProvider.awaitingAuthorization
         }) { result in
+            self.requestingNotificationPermission = false
             switch result {
             case let .status(status): completion(self.notificationResult(status))
             case .cancelled:
-                completion(.failure(code: "CANCELLED", message: "Notification permission requires a foreground user action"))
+                completion(.failure(code: "CANCELLED", message: "The document is not available for notification permission"))
             }
         }
     }
 
-    private var canPresentNotificationAction: Bool {
-        guard let presenter = presenterProvider?(), let window = presenter.viewIfLoaded?.window,
-              !window.isHidden, window.windowScene?.activationState == .foregroundActive,
-              presenter.presentedViewController == nil else { return false }
-        return hasRecentAuthUserAction()
+    private var hasForegroundNotificationPresenter: Bool {
+        guard let presenter = presenterProvider?(), let window = presenter.viewIfLoaded?.window else { return false }
+        return !window.isHidden && window.windowScene?.activationState == .foregroundActive
+            && presenter.presentedViewController == nil
     }
 
     private func notificationResult(_ status: NotificationAuthorizationStatus) -> BridgeDispatchResult {
