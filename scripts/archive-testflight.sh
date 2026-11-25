@@ -73,8 +73,8 @@ app="$archive/Products/Applications/FoodHomeApp.app"
 widget="$app/PlugIns/FoodHomeOrderStatus.appex"
 codesign --verify --strict "$widget"
 codesign --verify --strict "$app"
-codesign -d --entitlements - "$app" > "$signing_dir/profile-entitlements.plist"
-codesign -d --entitlements - "$widget" > "$signing_dir/widget-entitlements.plist"
+codesign --display --entitlements - --xml "$app" | plutil -convert xml1 -o "$signing_dir/profile-entitlements.plist" -
+codesign --display --entitlements - --xml "$widget" | plutil -convert xml1 -o "$signing_dir/widget-entitlements.plist" -
 security cms -D -i "$app/embedded.mobileprovision" -o "$signing_dir/profile-embedded.plist"
 security cms -D -i "$widget/embedded.mobileprovision" -o "$signing_dir/widget-embedded.plist"
 version=$(python3 scripts/verify_ios_archive.py "$app" "$DISTRIBUTION_TARGET" "$DISTRIBUTION_AUDIENCE" \

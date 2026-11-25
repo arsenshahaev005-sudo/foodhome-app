@@ -51,6 +51,30 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Inspect Xcode project
         run: plutil -lint ios/FoodHomeApp.xcodeproj/project.pbxproj
+      - name: Read XML entitlements from a signed Mach-O
+        shell: bash
+        run: |
+          set -euo pipefail
+          scratch=$(mktemp -d "$RUNNER_TEMP/foodhome-entitlements.XXXXXX")
+          printf '%s\n' 'int main(void) { return 0; }' | xcrun --sdk macosx clang -x c - -o "$scratch/app"
+          python3 - "$scratch/expected.plist" <<'PY'
+          import plistlib, sys
+          from pathlib import Path
+          values = {"application-identifier": "FIXTURE.market.foodhome.smoke", "aps-environment": "production"}
+          Path(sys.argv[1]).write_bytes(plistlib.dumps(values))
+          PY
+          codesign --force --sign - --entitlements "$scratch/expected.plist" "$scratch/app"
+          codesign --verify --strict "$scratch/app"
+          codesign --display --entitlements - --xml "$scratch/app" | plutil -convert xml1 -o "$scratch/actual.plist" -
+          python3 - "$scratch" <<'PY'
+          import plistlib, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          expected = plistlib.loads((root / "expected.plist").read_bytes())
+          actual = plistlib.loads((root / "actual.plist").read_bytes())
+          if any(actual.get(name) != value for name, value in expected.items()):
+              raise SystemExit("Signed Mach-O entitlements differ from the supplied fixture.")
+          PY
       - name: Verify App Store screenshot dimensions
         run: python3 -B -m unittest discover -s scripts -p test_store_screenshots.py
       - name: Verify distribution targets, export options and App Store Connect responses
