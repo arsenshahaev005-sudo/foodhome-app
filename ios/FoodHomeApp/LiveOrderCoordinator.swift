@@ -153,7 +153,7 @@ private final class LiveOrderRuntime {
             do {
                 let snapshot = try await client.register(binding, grant: grant)
                 guard epoch == generation, !Task.isCancelled else { throw CancellationError() }
-                let state = LiveOrderAttributes.ContentState(stage: snapshot.stage)
+                let state = LiveOrderAttributes.ContentState(stage: snapshot.stage, pickup: snapshot.pickup)
                 if state.isFinal { retire(binding); return "ended" }
                 binding.expiresAt = Date(timeIntervalSince1970: snapshot.expiresAt)
                 guard binding.expiresAt > Date() else { throw LiveOrderError.invalidResponse }
