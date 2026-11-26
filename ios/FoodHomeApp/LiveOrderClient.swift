@@ -73,6 +73,7 @@ private final class LiveOrderNoRedirect: NSObject, URLSessionTaskDelegate {
 struct LiveOrderSnapshot: Decodable {
     let orderId: UUID
     let stage: String
+    let pickup: Bool?
     let expiresAt: TimeInterval
 }
 
